@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Schemata.Migrations do
       all_rows
       |> transpose
       |> (fn c -> List.zip([alignment, col_widths, c]) end).()
-      |> Enum.map(fn args = {a, width, cols} ->
+      |> Enum.map(fn _args = {a, width, cols} ->
         Enum.map(cols, &adjust(&1, width, a))
       end)
       |> transpose
@@ -116,15 +116,15 @@ defmodule Mix.Tasks.Schemata.Migrations do
     |> Enum.map(&Tuple.to_list/1)
   end
 
-  defp align(fieldsbyrow, padding, alignment) when is_atom(alignment) do
-    colwidths = column_widths(fieldsbyrow)
-    Enum.map(fieldsbyrow, fn row ->
-      row
-      |> Enum.zip(colwidths)
-      |> Enum.map(fn {field, width} -> adjust(field, width, alignment) end)
-      |> Enum.join(padding)
-    end)
-  end
+  # defp align(fieldsbyrow, padding, alignment) when is_atom(alignment) do
+  #   colwidths = column_widths(fieldsbyrow)
+  #   Enum.map(fieldsbyrow, fn row ->
+  #     row
+  #     |> Enum.zip(colwidths)
+  #     |> Enum.map(fn {field, width} -> adjust(field, width, alignment) end)
+  #     |> Enum.join(padding)
+  #   end)
+  # end
 
   defp pad_rows(rows) do
     max_length =

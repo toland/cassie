@@ -12,20 +12,20 @@ defmodule Schemata.Parser do
   end
 
   def parse_loop([], _, params), do: params
-  def parse_loop([line = "-- up:"|lines], _, params) do
+  def parse_loop([_line = "-- up:"|lines], _, params) do
     parse_loop(lines, :up, params)
   end
-  def parse_loop([line = "-- down:"|lines], _, params) do
+  def parse_loop([_line = "-- down:"|lines], _, params) do
     parse_loop(lines, :down, params)
   end
-  def parse_loop([line = "-- authored_at:" <> authored_at|lines], state, params) do
+  def parse_loop([_line = "-- authored_at:" <> authored_at|lines], state, params) do
     {ts, _} =
       authored_at
       |> String.strip
       |> Integer.parse
     parse_loop(lines, state, %Migration{params|authored_at: ts})
   end
-  def parse_loop([line = "-- description:" <> desc|lines], state, params) do
+  def parse_loop([_line = "-- description:" <> desc|lines], state, params) do
     parse_loop(lines, state, %Migration{params|description: String.strip(desc)})
   end
   def parse_loop([line|lines], state, params) do
