@@ -1,9 +1,9 @@
-# Cassie
+# Schemata
 
 Some simple Cassandra migration tasks for Mix.
 
 # Usage
-First we define our migrations. These are just ordinary CQL files in `priv/cassie` that are described via comments. For instance, we could want a table to store our import `foobar` data.
+First we define our migrations. These are just ordinary CQL files in `priv/migrations` that are described via comments. For instance, we could want a table to store our import `foobar` data.
 
 ```cql
 -- description: Creates the foobars table
@@ -20,11 +20,11 @@ CREATE TABLE foobars (
 DROP TABLE foobars
 ```
 
-Cassie will parse these CQL files for us, and let us view all migrations
-with `cassie.migrations`.
+Schemata will parse these CQL files for us, and let us view all migrations
+with `schemata.migrations`.
 
 ```bash
-Christian λ mix cassie.migrations
+$ mix schemata.migrations
 Status   Name                                    Description
 ---------------------------------------------------------------------------------
 up       1464076712285_create_foobars.cql         Creates the foobars table
@@ -33,12 +33,12 @@ up       1464078503735_add_foobar_keyspace.cql   Adds the foobar keyspace
 up       1464078511522_add_baz_table.cql         Makes the table baz
 ```
 
-Let's rollback that last one with `cassie.rollback`.
+Let's rollback that last one with `schemata.rollback`.
 
 ```
-Christian λ mix cassie.rollback
+$ mix schemata.rollback
 
-01:32:32.203 [info]  == Running priv/cassie/1464078511522_add_baz_table.cql backwards
+01:32:32.203 [info]  == Running priv/migrations/1464078511522_add_baz_table.cql backwards
 
 01:32:32.203 [info]  USE foobar;
 
@@ -50,7 +50,7 @@ Christian λ mix cassie.rollback
 Listing them again shows the result of the rollback.
 
 ```bash
-Christian λ mix cassie.migrations
+$ mix schemata.migrations
 Status   Name                                    Description
 ---------------------------------------------------------------------------------
 up       1464076712285_create_foobars.cql         Creates the foobars table
@@ -59,12 +59,12 @@ up       1464078503735_add_foobar_keyspace.cql   Adds the foobar keyspace
 down     1464078511522_add_baz_table.cql         Makes the table baz
 ```
 
-So let's undo that and apply all pending migrations with `cassie.migrate`...
+So let's undo that and apply all pending migrations with `schemata.migrate`...
 
 ```
-Christian λ mix cassie.migrate
+$ mix schemata.migrate
 
-01:33:20.025 [info]  == Running priv/cassie/1464078511522_add_baz_table.cql
+01:33:20.025 [info]  == Running priv/migrations/1464078511522_add_baz_table.cql
 
 01:33:20.025 [info]  USE foobar;
 
@@ -76,7 +76,7 @@ Christian λ mix cassie.migrate
 and show that they're all done again!
 
 ```bash
-Christian λ mix cassie.migrations
+$ mix schemata.migrations
 Status   Name                                    Description
 ---------------------------------------------------------------------------------
 up       1464076712285_create_foobars.cql         Creates the foobars table
@@ -89,14 +89,14 @@ up       1464078511522_add_baz_table.cql         Makes the table baz
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
 
-  1. Add cassie to your list of dependencies in `mix.exs`:
+  1. Add schemata to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:cassie, "~> 0.0.1"}]
+          [{:schemata, "~> 0.1.0"}]
         end
 
-  2. Ensure cassie is started before your application:
+  2. Ensure schemata is started before your application:
 
         def application do
-          [applications: [:cassie]]
+          [applications: [:schemata]]
         end

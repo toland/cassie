@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Cassie.Gen do
+defmodule Mix.Tasks.Schemata.Gen do
   use Mix.Task
-  import Mix.Cassie
+  import Mix.Schemata
 
   def run([title]) do
     now = System.system_time(:milli_seconds)

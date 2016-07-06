@@ -1,10 +1,10 @@
-defmodule Mix.Tasks.Cassie.Migrations do
+defmodule Mix.Tasks.Schemata.Migrations do
   use Mix.Task
-  import Mix.Cassie
+  import Mix.Schemata
 
-  alias Cassie.Migration
+  alias Schemata.Migration
 
-  def run(_args, migrations \\ &Cassie.Migrator.migrations/1) do
+  def run(_args, migrations \\ &Schemata.Migrator.migrations/1) do
     Application.ensure_all_started(:cqerl)
     all = migrations.(migrations_path)
 

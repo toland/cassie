@@ -1,4 +1,4 @@
-defmodule Cassie.Migration do
+defmodule Schemata.Migration do
   defstruct [
       up: nil,
       down: nil,

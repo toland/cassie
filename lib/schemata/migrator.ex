@@ -1,4 +1,4 @@
-defmodule Cassie.Migrator do
+defmodule Schemata.Migrator do
   require Logger
 
   defmodule MigrationError do
@@ -16,7 +16,7 @@ defmodule Cassie.Migrator do
     end
   end
 
-  alias Cassie.Migration
+  alias Schemata.Migration
 
   require Record
   import Record, only: [defrecord: 2, extract: 2]
@@ -60,10 +60,10 @@ defmodule Cassie.Migrator do
 
   def ensure_migrations_table! do
     create_keyspace =
-      "CREATE KEYSPACE cassie_migrator WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};"
+      "CREATE KEYSPACE schemata_migrator WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};"
 
     create_table = ~s"""
-    CREATE TABLE cassie_migrator.migrations (
+    CREATE TABLE schemata_migrator.migrations (
       authored_at timestamp,
       description varchar,
       applied_at timestamp,
@@ -97,12 +97,12 @@ defmodule Cassie.Migrator do
     path
     |> File.ls!
     |> Enum.map(fn file ->
-      Path.join(path, file) |> Cassie.Parser.parse_migration
+      Path.join(path, file) |> Schemata.Parser.parse_migration
     end)
   end
 
   def migrations_applied do
-    "SELECT * FROM cassie_migrator.migrations;"
+    "SELECT * FROM schemata_migrator.migrations;"
     |> execute
     |> Enum.map(fn mig ->
       defaults = Map.delete(%Migration{}, :__struct__)
@@ -118,11 +118,11 @@ defmodule Cassie.Migrator do
   defp migrate(mig = %Migration{filename: filename, authored_at: authored_at, description: description, up: up}, :up, opts) do
     Logger.info("== Running #{filename}")
     execute_statements(up, opts)
-    query = "INSERT INTO cassie_migrator.migrations (authored_at, description, applied_at) VALUES (?, ?, ?);"
+    query = "INSERT INTO schemata_migrator.migrations (authored_at, description, applied_at) VALUES (?, ?, ?);"
     values = [authored_at: authored_at, description: description, applied_at: System.system_time(:milli_seconds)]
     execute(query, values)
   rescue
-    e in [Cassie.Migrator.CassandraError] ->
+    e in [Schemata.Migrator.CassandraError] ->
       Logger.error(Exception.message(e))
       migrate(mig, :down, opts)
       Logger.info("There was an error while trying to migrate #{filename}")
@@ -131,7 +131,7 @@ defmodule Cassie.Migrator do
   defp migrate(%Migration{filename: filename, authored_at: authored_at, description: description, down: down}, :down, opts) do
     Logger.info("== Running #{filename} backwards")
     execute_statements(down, opts)
-    query = "DELETE FROM cassie_migrator.migrations WHERE authored_at = ? AND description = ?;"
+    query = "DELETE FROM schemata_migrator.migrations WHERE authored_at = ? AND description = ?;"
     values = [authored_at: authored_at, description: description]
     execute(query, values)
   end

@@ -1,5 +1,5 @@
-defmodule Cassie.Parser do
-  alias Cassie.Migration
+defmodule Schemata.Parser do
+  alias Schemata.Migration
 
   def parse_migration(filename) do
     filename

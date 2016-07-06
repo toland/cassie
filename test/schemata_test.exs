@@ -1,6 +1,6 @@
-defmodule CassieTest do
+defmodule SchemataTest do
   use ExUnit.Case
-  doctest Cassie
+  doctest Schemata
 
   test "the truth" do
     assert 1 + 1 == 2

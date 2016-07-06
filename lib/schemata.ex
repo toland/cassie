@@ -1,0 +1,2 @@
+defmodule Schemata do
+end
