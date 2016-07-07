@@ -1,0 +1,11 @@
+%% -*- mode: erlang; erlang-indent-level: 4; indent-tabs-mode: nil -*-
+%% ex: ts=4 sw=4 ft=erlang et
+{application, schemata,
+ [{description, "Schemata library for interacting with Cassandra"},
+  {vsn, "0.1.0"},
+  {modules, []},
+  {registered, []},
+  {applications, [kernel, stdlib, cqerl]},
+  %% {mod, {schemata_app, []}},
+  {env, []}
+ ]}.
