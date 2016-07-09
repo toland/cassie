@@ -11,7 +11,11 @@ defmodule Schemata.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :cqerl]]
+    [applications: [:logger, :cqerl],
+     env: [
+       cassandra_hosts: [{"localhost", 9042}],
+       cassandra_opts: []
+     ]]
   end
 
   defp deps do
