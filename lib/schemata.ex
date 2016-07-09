@@ -45,7 +45,7 @@ defmodule Schemata do
       where: conditions,
       limit: limit
     }
-    |> Query.run
+    |> Query.run!
     |> Query.all_rows
   end
 end

@@ -90,6 +90,13 @@ defmodule Schemata.Query do
   end
 
   @doc ""
+  @spec run!(Query.t | Queryable.t) :: :void | result
+  def run!(query) do
+    {:ok, result} = run(query)
+    result
+  end
+
+  @doc ""
   @spec run(Query.t | Queryable.t) :: {:ok, :void | result} | {:error, error}
   def run(%Query{} = query) do
     hosts = Application.get_env(:schemata, :cassandra_hosts)
