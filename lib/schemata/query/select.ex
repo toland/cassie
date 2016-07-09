@@ -27,7 +27,7 @@ defmodule Schemata.Query.Select do
       %Query{
         statement:   statement(select),
         values:      select.where,
-        keyspace:    select.keyspace,
+        keyspace:    select.in,
         consistency: select.with
       }
     end
