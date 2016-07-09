@@ -4,4 +4,4 @@
 
 
 select(Keyspace, Table, Columns, Conditions) ->
-    'Elixir.Schemata.Query':select(Keyspace, Table, Columns, Conditions).
+    'Elixir.Schemata':select(Keyspace, Table, Columns, Conditions).
