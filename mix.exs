@@ -15,7 +15,7 @@ defmodule Schemata.Mixfile do
     [description: 'Schemata library for interacting with Cassandra',
      applications: [:cqerl],
      env: [
-       cassandra_hosts: [{"localhost", 9042}],
+       cassandra_hosts: [{'127.0.0.1', 9042}],
        cassandra_opts: []
      ]]
   end
