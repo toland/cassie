@@ -22,7 +22,9 @@ defmodule Schemata.Mixfile do
 
   defp deps do
     [
-      {:cqerl, github: "matehat/cqerl", branch: "master"}
+      {:cqerl, github: "hippware/cqerl", branch: "working-2.0", manager: :rebar3},
+      ## erlando's app file is b0rked so we need to override the dep here.
+      {:erlando, ~r//, github: "rabbitmq/erlando", branch: "master", override: true}
     ]
   end
 end

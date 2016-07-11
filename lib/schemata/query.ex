@@ -8,39 +8,25 @@ defmodule Schemata.Query do
     end
   end
 
-  require Record
-  import Record, only: [defrecordp: 2, extract: 2]
-
-  defrecordp :cql_query, extract(:cql_query, from_lib: "cqerl/include/cqerl.hrl")
-  defrecordp :cql_result, extract(:cql_result, from_lib: "cqerl/include/cqerl.hrl")
+  use Schemata.CQErl
+  alias Schemata.Query
 
   @type keyspace          :: nil | binary
   @type table             :: atom | binary
   @type explicit_columns  :: [atom]
   @type columns           :: :all | explicit_columns
   @type conditions        :: map
-
-  @type consistency_level :: :any
-                           | :one
-                           | :two
-                           | :three
-                           | :quorum
-                           | :all
-                           | :local_quorum
-                           | :each_quorum
-                           | :local_one
-
-  @type statement         :: iodata
-  @type parameter_val     :: number | binary | list | atom | boolean
-  @type value             :: parameter_val
+  @type consistency_level :: CQErl.consistency_level
+  @type statement         :: CQErl.query_statement
+  @type parameter_val     :: CQErl.parameter_val
+  @type value             :: CQErl.parameter_val
   @type values            :: map
   @type limit             :: nil | pos_integer
   @type row               :: map
   @type rows              :: [row]
-  @type error             :: term
-  @opaque result          :: record(:cql_result)
-
-  alias Schemata.Query
+  @type error             :: {:error, term}
+  @opaque result          :: record(:cqerl_result)
+  @type query_result      :: CQErl.query_result
 
   @enforce_keys [:statement]
   defstruct [
@@ -78,8 +64,7 @@ defmodule Schemata.Query do
   abstract datatype that can be passed to {@link rows/1} or
   {@link single_result/1}.
   """
-  @spec run(keyspace, statement, values, consistency_level) ::
-    {:ok, :void | result} | {:error, error}
+  @spec run(keyspace, statement, values, consistency_level) :: query_result
   def run(keyspace, statement, values, consistency) do
     run %Query{
       keyspace: keyspace,
@@ -97,32 +82,13 @@ defmodule Schemata.Query do
   end
 
   @doc ""
-  @spec run(Query.t | Queryable.t) :: {:ok, :void | result} | {:error, error}
-  def run(%Query{} = query) do
-    hosts = Application.get_env(:schemata, :cassandra_hosts)
-    opts = Application.get_env(:schemata, :cassandra_opts)
-    case get_client(query.keyspace, hd(hosts), opts) do
-      {:ok, client} ->
-        return = :cqerl.run_query(client, to_cql_query(query))
-        :cqerl.close_client(client)
-        return
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-  def run(queryable) do
-    queryable
-    |> Queryable.to_query
-    |> run
-  end
-
-  defp get_client(nil, host, opts), do: :cqerl.get_client(host, opts)
-  defp get_client(keyspace, host, opts) do
-    :cqerl.get_client(host, [{:keyspace, keyspace}|opts])
-  end
+  @spec run(Query.t | Queryable.t) :: query_result
+  def run(%Query{} = query), do: CQErl.run_query(to_cql_query(query))
+  def run(queryable), do: queryable |> Queryable.to_query |> run
 
   defp to_cql_query(query) do
     cql_query(
+      keyspace:    query.keyspace
       statement:   query.statement,
       values:      query.values,
       consistency: query.consistency,
@@ -137,5 +103,5 @@ defmodule Schemata.Query do
   pairs.
   """
   @spec all_rows(result) :: rows
-  def all_rows(result), do: :cqerl.all_rows(result)
+  def all_rows(result), do: CQErl.all_rows(result)
 end
