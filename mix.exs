@@ -41,6 +41,7 @@ defmodule Schemata.Mixfile do
       {:dialyxir, "~> 0.3", only: :dev},
       {:dogma,    "~> 0.1", only: :dev},
       {:credo,    "~> 0.4", only: :dev},
+      {:ex_guard, "~> 1.1", only: :dev},
       {:espec,    "~> 0.8", only: :test},
       {:coverex,  "~> 1.4", only: :test},
 
