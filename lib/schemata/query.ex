@@ -10,6 +10,7 @@ defmodule Schemata.Query do
 
   use Schemata.CQErl
   alias Schemata.Query
+  alias Schemata.Queryable
 
   @type keyspace          :: nil | binary
   @type table             :: atom | binary
@@ -42,11 +43,6 @@ defmodule Schemata.Query do
     keyspace:    keyspace,
     consistency: consistency_level
   }
-
-  defprotocol Queryable do
-    @doc "Converts the struct to a CQL query"
-    def to_query(struct)
-  end
 
   @doc """
   Execute a query.

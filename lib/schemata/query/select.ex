@@ -22,7 +22,7 @@ defmodule Schemata.Query.Select do
     with:   Query.consistency_level
   }
 
-  defimpl Query.Queryable do
+  defimpl Schemata.Queryable do
     def to_query(select) do
       %Query{
         statement:   statement(select),
