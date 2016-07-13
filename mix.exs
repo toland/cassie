@@ -8,6 +8,18 @@ defmodule Schemata.Mixfile do
      compilers: [:elixir, :erlang, :app],
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     dialyzer: [
+       plt_add_deps: :transitive,
+       plt_add_apps: [:ssl],
+       flags: [
+         "--fullpath",
+         "-Wunmatched_returns",
+         "-Werror_handling",
+         "-Wrace_conditions",
+         "-Wunderspecs",
+         "-Wunknown"
+       ]
+     ],
      deps: deps]
   end
 
@@ -22,6 +34,7 @@ defmodule Schemata.Mixfile do
 
   defp deps do
     [
+      {:dialyxir, "~> 0.3", only: [:dev]},
       {:cqerl, github: "hippware/cqerl", branch: "working-2.0", manager: :rebar3},
       ## erlando's app file is b0rked so we need to override the dep here.
       {:erlando, ~r//, github: "rabbitmq/erlando", branch: "master", override: true}

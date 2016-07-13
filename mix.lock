@@ -1,4 +1,5 @@
 %{"cqerl": {:git, "https://github.com/hippware/cqerl.git", "7db879993dde2f0432f5c45111223a1e7edfe580", [branch: "working-2.0"]},
+  "dialyxir": {:hex, :dialyxir, "0.3.5", "eaba092549e044c76f83165978979f60110dc58dd5b92fd952bf2312f64e9b14", [:mix], []},
   "erlando": {:git, "https://github.com/rabbitmq/erlando.git", "1c1ef25a9bc228671b32b4a6ee30c7525314b1fd", [branch: "master"]},
   "erlang_murmurhash": {:git, "https://github.com/hippware/erlang-murmurhash.git", "73fe63aad252c9d503c889935f30370995026403", [branch: "master"]},
   "lz4": {:git, "https://github.com/szktty/erlang-lz4.git", "30878eafeff35939052c2cafe17d21c95029d3a1", [tag: "0.2.2"]},

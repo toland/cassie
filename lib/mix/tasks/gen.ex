@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Schemata.Gen do
   import Mix.Schemata
 
   def run([title]) do
-    now = System.system_time(:milli_seconds)
+    now = System.system_time(:milliseconds)
 
     template = ~s"""
     -- description: <your-description-here>

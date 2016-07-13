@@ -25,7 +25,7 @@ defmodule Schemata do
       limit: 1
       with: :quorum
   """
-  @spec select(Query.columns, map) :: Query.rows
+  @spec select(Query.columns, Keyword.t) :: Query.rows
   def select(columns, query) do
     select(query[:in],
       Keyword.fetch!(query, :from), columns,

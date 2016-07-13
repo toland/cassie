@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Schemata.Migrations do
   alias Schemata.Migration
 
   def run(_args, migrations \\ &Schemata.Migrator.migrations/1) do
-    Application.ensure_all_started(:cqerl)
+    {:ok, _} = Application.ensure_all_started(:cqerl)
     all = migrations.(migrations_path)
 
     rows = Enum.map(all, fn %Migration{filename: file, applied_at: applied, description: desc} ->

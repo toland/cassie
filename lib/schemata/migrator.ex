@@ -113,27 +113,26 @@ defmodule Schemata.Migrator do
   end
 
   defp migrate(mig = %Migration{filename: filename, module: module, authored_at: authored_at, description: description}, :up) do
-    Logger.info("== Running #{filename}")
+    :ok = Logger.info("== Running #{filename}")
     module.up
     query = "INSERT INTO schemata_migrator.migrations (authored_at, description, applied_at) VALUES (?, ?, ?);"
-    values = [authored_at: authored_at, description: description, applied_at: System.system_time(:milli_seconds)]
+    values = %{authored_at: authored_at, description: description, applied_at: System.system_time(:milliseconds)}
     execute(query, values)
   rescue
     e in [Schemata.Migrator.CassandraError] ->
-      Logger.error(Exception.message(e))
+      :ok = Logger.error(Exception.message(e))
+      :ok = Logger.info("There was an error while trying to migrate #{filename}")
       migrate(mig, :down)
-      Logger.info("There was an error while trying to migrate #{filename}")
-      exit(:shutdown)
   end
   defp migrate(%Migration{filename: filename, module: module, authored_at: authored_at, description: description}, :down) do
-    Logger.info("== Running #{filename} backwards")
+    :ok = Logger.info("== Running #{filename} backwards")
     module.down
     query = "DELETE FROM schemata_migrator.migrations WHERE authored_at = ? AND description = ?;"
-    values = [authored_at: authored_at, description: description]
+    values = %{authored_at: authored_at, description: description}
     execute(query, values)
   end
 
-  defp execute(statement, values \\ []) do
+  defp execute(statement, values \\ %{}) do
     query = cql_query(statement: statement, values: values)
     case :cqerl.run_query(query) do
       {:ok, :void} -> :ok

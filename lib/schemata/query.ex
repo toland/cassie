@@ -75,7 +75,7 @@ defmodule Schemata.Query do
   end
 
   @doc ""
-  @spec run!(Query.t | Queryable.t) :: :void | result
+  @spec run!(Query.t | Queryable.t) :: :void | Query.result
   def run!(query) do
     {:ok, result} = run(query)
     result
@@ -102,6 +102,6 @@ defmodule Schemata.Query do
   Returns a list of rows. Each row is a property list of column name, value
   pairs.
   """
-  @spec all_rows(result) :: rows
+  @spec all_rows(Query.result) :: rows
   def all_rows(result), do: CQErl.all_rows(result)
 end

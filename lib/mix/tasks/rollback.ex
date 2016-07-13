@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Schemata.Rollback do
   import Mix.Schemata
 
   def run(_args, migrator \\ &Schemata.Migrator.run/3) do
-    Application.ensure_all_started(:cqerl)
+    {:ok, _} = Application.ensure_all_started(:cqerl)
     opts = [log: true, n: 1]
     migrator.(migrations_path, :down, opts)
   end
