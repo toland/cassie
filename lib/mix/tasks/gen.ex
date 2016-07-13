@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.Schemata.Gen do
+  @moduledoc false
+
   use Mix.Task
   import Mix.Schemata
 

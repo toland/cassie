@@ -1,4 +1,5 @@
 defmodule Schemata.Migration do
+  @moduledoc ""
 
   @callback description() :: binary
   @callback authored_at() :: NaiveDateTime.t
@@ -16,22 +17,26 @@ defmodule Schemata.Migration do
   ]
 
   defmacro __using__(opts) do
-    description = opts[:description]
-    authored_at = opts[:authored_at]
+    opt_description = opts[:description]
+    opt_authored_at = opts[:authored_at]
 
     quote do
       @behaviour Schemata.Migration
 
-      if unquote(description) do
-        def description, do: unquote(description)
+      if unquote(opt_description) do
+        def description, do: unquote(opt_description)
       end
 
-      if unquote(authored_at) do
-        def authored_at, do: unquote(authored_at)
+      if unquote(opt_authored_at) do
+        def authored_at, do: unquote(opt_authored_at)
       end
 
       def down do
-        raise Schemata.Migrator.MigrationError, message: "Rollback is not supported for migration: #{unquote(description)}"
+        raise Schemata.Migrator.MigrationError, [
+          message: """
+          Rollback is not supported for migration: #{unquote(opt_description)}
+          """
+        ]
       end
 
       defoverridable [down: 0]
@@ -39,7 +44,7 @@ defmodule Schemata.Migration do
   end
 
   def load(file) do
-    {module, _} = Code.load_file(file) |> hd
+    {module, _} = file |> Code.load_file |> hd
     %__MODULE__{
       filename: file,
       module: module,

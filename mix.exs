@@ -34,9 +34,11 @@ defmodule Schemata.Mixfile do
 
   defp deps do
     [
-      {:dialyxir, "~> 0.3", only: [:dev]},
+      {:dialyxir, "~> 0.3", only: :dev},
+      {:dogma,    "~> 0.1", only: :dev},
+      {:credo,    "~> 0.4", only: :dev},
       {:cqerl, github: "hippware/cqerl", branch: "working-2.0", manager: :rebar3},
-      ## erlando's app file is b0rked so we need to override the dep here.
+      # erlando's app file is b0rked so we need to override the dep here.
       {:erlando, ~r//, github: "rabbitmq/erlando", branch: "master", override: true}
     ]
   end

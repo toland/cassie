@@ -45,7 +45,7 @@ defmodule Schemata.Query.Select do
     defp columns(cols, _), do: Enum.join(cols, ", ")
 
     defp conditions([]), do: ""
-    defp conditions([first|rest]) do
+    defp conditions([first | rest]) do
       List.foldl(rest, "WHERE #{first} = ?",
        fn (name, str) -> "#{str} AND #{name} = ?" end)
     end

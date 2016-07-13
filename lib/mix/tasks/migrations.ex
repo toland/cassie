@@ -1,17 +1,20 @@
 defmodule Mix.Tasks.Schemata.Migrations do
+  @moduledoc false
+
   use Mix.Task
   import Mix.Schemata
 
   alias Schemata.Migration
+  alias Schemata.Migrator
 
-  def run(_args, migrations \\ &Schemata.Migrator.migrations/1) do
+  def run(_args, migrations \\ &Migrator.migrations/1) do
     {:ok, _} = Application.ensure_all_started(:cqerl)
     all = migrations.(migrations_path)
 
-    rows = Enum.map(all, fn %Migration{filename: file, applied_at: applied, description: desc} ->
-      status = if applied, do: "up", else: "down"
-      name = Path.basename(file)
-      [status, name, desc]
+    rows = Enum.map(all, fn mig = %Migration{} ->
+      status = if mig.applied_at, do: "up", else: "down"
+      name = Path.basename(mig.filename)
+      [status, name, mig.description]
     end)
 
     labels = ["Status", "Name", "Description"]
@@ -20,7 +23,9 @@ defmodule Mix.Tasks.Schemata.Migrations do
       rows: rows,
       padding: "   ",
       title_colors: %{uid: :green, ts: :yellow, banned: :red},
-      row_colors: %{"Status" => fn s -> if s == "up", do: :green, else: :red end},
+      row_colors: %{"Status" => fn s ->
+        if s == "up", do: :green, else: :red
+      end},
       align: :left
     )
   end
@@ -32,15 +37,16 @@ defmodule Mix.Tasks.Schemata.Migrations do
     #   row_border: :inner
     #   title_border: :top_and_bottom, # bottom
     all_rows =
-      [titles|rows]
+      [titles | rows]
       |> Enum.map(fn row ->
         Enum.map(row, &to_string/1)
       end)
       |> pad_rows
-    alignment = cond do
-      is_atom(align) -> List.duplicate(align, length(hd(all_rows)))
-      true -> align
-    end
+      alignment = if is_atom(align) do
+        List.duplicate(align, length(hd(all_rows)))
+      else
+        align
+      end
     col_widths = column_widths(all_rows)
     table =
       all_rows
@@ -53,7 +59,7 @@ defmodule Mix.Tasks.Schemata.Migrations do
     display(table, col_widths, opts)
   end
 
-  def display([titles|rows], col_widths, opts) do
+  def display([titles | rows], col_widths, opts) do
     padding = Keyword.get(opts, :padding, "")
     title_colors = Keyword.get(opts, :title_colors, %{})
     row_colors   = Keyword.get(opts, :row_colors, %{})
@@ -147,10 +153,11 @@ defmodule Mix.Tasks.Schemata.Migrations do
   end
 
   defp colorize(string, color) do
-    IO.ANSI.format([color, string], true) |> to_string
+    [color, string] |> IO.ANSI.format(true) |> to_string
   end
 
   defp adjust(field, width, :left),  do: String.ljust(field, width)
   defp adjust(field, width, :right), do: String.rjust(field, width)
-  defp adjust(field, width, :center),      do: :string.centre(String.to_char_list(field), width) |> to_string
+  defp adjust(field, width, :center),
+    do: field |> String.to_char_list |> :string.centre(width) |> to_string
 end
