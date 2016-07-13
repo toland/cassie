@@ -25,7 +25,7 @@ defmodule Schemata.Query do
   @type row               :: map
   @type rows              :: [row]
   @type error             :: {:error, term}
-  @opaque result          :: record(:cqerl_result)
+  @opaque result          :: record(:cql_result)
   @type query_result      :: CQErl.query_result
 
   @enforce_keys [:statement]
@@ -88,7 +88,7 @@ defmodule Schemata.Query do
 
   defp to_cql_query(query) do
     cql_query(
-      keyspace:    query.keyspace
+      keyspace:    query.keyspace,
       statement:   query.statement,
       values:      query.values,
       consistency: query.consistency,

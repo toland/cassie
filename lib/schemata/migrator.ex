@@ -23,7 +23,7 @@ defmodule Schemata.Migrator do
 
   defrecord :cql_query, extract(:cql_query, from_lib: "cqerl/include/cqerl.hrl")
 
-  def run(path, :up, opts) do
+  def run(path, :up, _opts) do
     ensure_migrations_table!
 
     to_apply =
@@ -34,7 +34,7 @@ defmodule Schemata.Migrator do
     case to_apply do
       [] -> Logger.info("Already up")
       to_apply  ->
-        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :up, opts)])
+        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :up)])
         Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
     end
   end
@@ -53,7 +53,7 @@ defmodule Schemata.Migrator do
     case to_apply do
       [] -> Logger.info("Already down")
       to_apply  ->
-        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :down, opts)])
+        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :down)])
         Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
     end
   end
@@ -97,7 +97,7 @@ defmodule Schemata.Migrator do
     path
     |> File.ls!
     |> Enum.map(fn file ->
-      Path.join(path, file) |> Schemata.Parser.parse_migration
+      Path.join(path, file) |> Schemata.Migration.load
     end)
   end
 
@@ -112,41 +112,30 @@ defmodule Schemata.Migrator do
     end)
   end
 
-  defp migrate(%Migration{filename: filename, down: nil}, :down, _opts) do
-    raise MigrationError, message: "Rollback is not supported for migration: #{filename}"
-  end
-  defp migrate(mig = %Migration{filename: filename, authored_at: authored_at, description: description, up: up}, :up, opts) do
+  defp migrate(mig = %Migration{filename: filename, module: module, authored_at: authored_at, description: description}, :up) do
     Logger.info("== Running #{filename}")
-    execute_statements(up, opts)
+    module.up
     query = "INSERT INTO schemata_migrator.migrations (authored_at, description, applied_at) VALUES (?, ?, ?);"
     values = [authored_at: authored_at, description: description, applied_at: System.system_time(:milli_seconds)]
     execute(query, values)
   rescue
     e in [Schemata.Migrator.CassandraError] ->
       Logger.error(Exception.message(e))
-      migrate(mig, :down, opts)
+      migrate(mig, :down)
       Logger.info("There was an error while trying to migrate #{filename}")
       exit(:shutdown)
   end
-  defp migrate(%Migration{filename: filename, authored_at: authored_at, description: description, down: down}, :down, opts) do
+  defp migrate(%Migration{filename: filename, module: module, authored_at: authored_at, description: description}, :down) do
     Logger.info("== Running #{filename} backwards")
-    execute_statements(down, opts)
+    module.down
     query = "DELETE FROM schemata_migrator.migrations WHERE authored_at = ? AND description = ?;"
     values = [authored_at: authored_at, description: description]
     execute(query, values)
   end
 
-  defp execute_statements(cql, opts) do
-    cql
-    |> String.split(";", trim: true)
-    |> Enum.each(fn s -> execute_idempotent(s <> ";", opts) end)
-    :ok
-  end
-
   defp execute(statement, values \\ []) do
-    {:ok, c} = :cqerl.get_client {}
     query = cql_query(statement: statement, values: values)
-    case :cqerl.run_query(c, query) do
+    case :cqerl.run_query(query) do
       {:ok, :void} -> :ok
       {:ok, result} -> :cqerl.all_rows(result)
       {:error, {8704, _, _}} -> []
@@ -155,7 +144,6 @@ defmodule Schemata.Migrator do
   end
 
   defp execute_idempotent(query, opts \\ []) do
-    {:ok, c} = :cqerl.get_client {}
     if Keyword.get(opts, :log, false) do
       query_info =
         query
@@ -164,7 +152,7 @@ defmodule Schemata.Migrator do
         |> Enum.join(" ")
       Logger.info(query_info)
     end
-    case :cqerl.run_query(c, query) do
+    case :cqerl.run_query(query) do
       {:ok, _} -> :ok
       # Cannot add existing keyspace/table
       {:error, {9216, _, _}} -> :ok
