@@ -8,6 +8,8 @@ defmodule Schemata.Mixfile do
      compilers: [:elixir, :erlang, :app],
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     test_coverage: [tool: Coverex.Task, ignore_modules: [:schemata]],
+     preferred_cli_env: [espec: :test, spec: :test],
      dialyzer: [
        plt_add_deps: :transitive,
        plt_add_apps: [:ssl],
@@ -20,16 +22,18 @@ defmodule Schemata.Mixfile do
          "-Wunknown"
        ]
      ],
+     aliases: aliases,
      deps: deps]
   end
 
   def application do
     [description: 'Schemata library for interacting with Cassandra',
      applications: [:cqerl],
-     env: [
-       cassandra_hosts: [{'127.0.0.1', 9042}],
-       cassandra_opts: []
-     ]]
+     env: []]
+  end
+
+  defp aliases do
+    [spec: "espec --cover"]
   end
 
   defp deps do
@@ -37,7 +41,11 @@ defmodule Schemata.Mixfile do
       {:dialyxir, "~> 0.3", only: :dev},
       {:dogma,    "~> 0.1", only: :dev},
       {:credo,    "~> 0.4", only: :dev},
+      {:espec,    "~> 0.8", only: :test},
+      {:coverex,  "~> 1.4", only: :test},
+
       {:cqerl, github: "hippware/cqerl", branch: "working-2.0", manager: :rebar3},
+
       # erlando's app file is b0rked so we need to override the dep here.
       {:erlando, ~r//, github: "rabbitmq/erlando", branch: "master", override: true}
     ]
