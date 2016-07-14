@@ -7,8 +7,6 @@ defmodule Schemata.Migration do
   @callback down() :: term
 
   defstruct [
-    up: nil,
-    down: nil,
     description: nil,
     authored_at: nil,
     applied_at: nil,
@@ -43,7 +41,7 @@ defmodule Schemata.Migration do
     end
   end
 
-  def load(file) do
+  def load_file(file) do
     {module, _} = file |> Code.load_file |> hd
     %__MODULE__{
       filename: file,
@@ -51,5 +49,15 @@ defmodule Schemata.Migration do
       description: module.description,
       authored_at: module.authored_at
     }
+  end
+
+  def from_map(map) do
+    map
+    |> Enum.into(defaults)
+    |> Map.put(:__struct__, __MODULE__)
+  end
+
+  defp defaults do
+    Map.delete(%__MODULE__{}, :__struct__)
   end
 end

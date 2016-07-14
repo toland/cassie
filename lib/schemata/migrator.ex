@@ -22,12 +22,12 @@ defmodule Schemata.Migrator do
     end
   end
 
+  use Schemata.CQErl
   alias Schemata.Migration
+  import Schemata.Query.Select, only: [select: 2]
 
-  require Record
-  import Record, only: [defrecord: 2, extract: 2]
-
-  defrecord :cql_query, extract(:cql_query, from_lib: "cqerl/include/cqerl.hrl")
+  @keyspace "schemata"
+  @table "migrations"
 
   def run(path, :up, _opts) do
     ensure_migrations_table!
@@ -65,21 +65,21 @@ defmodule Schemata.Migrator do
   end
 
   def ensure_migrations_table! do
-    create_keyspace = ~S"""
-    CREATE KEYSPACE schemata_migrator
+    create_keyspace = """
+    CREATE KEYSPACE IF NOT EXISTS #{@keyspace}
     WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};
     """
 
-    create_table = ~S"""
-    CREATE TABLE schemata_migrator.migrations (
+    create_table = """
+    CREATE TABLE IF NOT EXISTS #{@keyspace}.#{@table} (
       authored_at timestamp,
       description varchar,
       applied_at timestamp,
       PRIMARY KEY (authored_at, description)
     );
     """
-    execute_idempotent(create_keyspace)
-    execute_idempotent(create_table)
+    execute(create_keyspace)
+    execute(create_table)
   end
 
   def migrations(path) do
@@ -110,91 +110,61 @@ defmodule Schemata.Migrator do
   def migrations_available(path) do
     path
     |> File.ls!
-    |> Enum.map(fn file ->
-      path |> Path.join(file) |> Migration.load
-    end)
+    |> Enum.map(fn file -> path |> Path.join(file) |> Migration.load_file end)
   end
 
   def migrations_applied do
-    "SELECT * FROM schemata_migrator.migrations;"
-    |> execute
-    |> Enum.map(fn mig ->
-      defaults = Map.delete(%Migration{}, :__struct__)
-      mig
-      |> Enum.into(defaults)
-      |> Map.put(:__struct__, Migration)
-    end)
+    select(:all, from: @table, in: @keyspace)
+    |> Enum.map(&Migration.from_map/1)
   end
 
-  defp migrate(mig = %Migration{filename: file}, :up) do
-    :ok = Logger.info("== Running #{file}")
-    mig.module.up
-    query = """
-    INSERT INTO schemata_migrator.migrations
-      (authored_at, description, applied_at)
-    VALUES
-      (?, ?, ?);
-    """
-    values = %{
-      authored_at: mig.authored_at,
-      description: mig.description,
-      applied_at: System.system_time(:milliseconds)
-    }
+  defp migrate(migration = %Migration{filename: file}, direction) do
+    :ok = Logger.info("== Migrating #{file} #{direction}")
+    apply(migration.module, direction, [])
+    {query, values} = make_db_query(migration, direction)
     execute(query, values)
   rescue
     e in [Schemata.Migrator.CassandraError] ->
       :ok = Logger.error(Exception.message(e))
       :ok = Logger.info("There was an error while trying to migrate #{file}")
-      migrate(mig, :down)
+      maybe_roll_back(direction, migration)
   end
-  defp migrate(mig = %Migration{filename: file}, :down) do
-    :ok = Logger.info("== Running #{file} backwards")
-    mig.module.down
+
+  defp maybe_roll_back(_migration, :down), do: :ok
+  defp maybe_roll_back(migration, :up), do: migrate(migration, :down)
+
+  defp make_db_query(%Migration{authored_at: a, description: d}, :up) do
     query = """
-    DELETE FROM schemata_migrator.migrations
+    INSERT INTO #{@keyspace}.#{@table}
+      (authored_at, description, applied_at)
+    VALUES
+      (?, ?, ?);
+    """
+    values = %{
+      authored_at: a,
+      description: d,
+      applied_at: System.system_time(:milliseconds)
+    }
+    {query, values}
+  end
+
+  defp make_db_query(%Migration{authored_at: a, description: d}, :down) do
+    query = """
+    DELETE FROM #{@keyspace}.#{@table}
     WHERE authored_at = ? AND description = ?;
     """
-    values = %{authored_at: mig.authored_at, description: mig.description}
-    execute(query, values)
-  rescue
-    e in [Schemata.Migrator.CassandraError] ->
-      :ok = Logger.error(Exception.message(e))
-      :ok = Logger.info("There was an error while trying to roll back #{file}")
+    values = %{authored_at: a, description: d}
+    {query, values}
   end
 
   defp execute(statement, values \\ %{}) do
     query = cql_query(statement: statement, values: values)
-    case :cqerl.run_query(query) do
+    case CQErl.run_query(query) do
       {:ok, :void} -> :ok
-      {:ok, result} -> :cqerl.all_rows(result)
+      {:ok, result} -> CQErl.all_rows(result)
       {:error, {8704, _, _}} -> []
       {:error, {code, msg, _}} -> raise CassandraError, [
        query: statement, error_message: msg, error_code: code
-      ]
-    end
-  end
-
-  defp execute_idempotent(query, opts \\ []) do
-    if Keyword.get(opts, :log, false) do
-      query_info =
-        query
-        |> String.split
-        |> Enum.take(3)
-        |> Enum.join(" ")
-      Logger.info(query_info)
-    end
-    case :cqerl.run_query(query) do
-      {:ok, _} -> :ok
-      # Cannot add existing keyspace/table
-      {:error, {9216, _, _}} -> :ok
-      # Cannot drop keyspace
-      {:error, {8960, _, _}} -> :ok
-      # Cannot drop table
-      # We match on the message because the code is also used for
-      # Error: No keyspace specified
-      {:error, {8704, "unconfigured table" <> _, _}} -> :ok
-      {:error, {code, msg, _}} -> raise CassandraError, [
-       error_message: msg, error_code: code
       ]
     end
   end

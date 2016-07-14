@@ -7,9 +7,9 @@ defmodule Schemata.Query.Select do
   defstruct [
     values: :all,
     from:   nil,
-    in:     :none,
+    in:     nil,
     where:  %{},
-    limit:  :none,
+    limit:  nil,
     with:   :quorum
   ]
 
@@ -21,6 +21,34 @@ defmodule Schemata.Query.Select do
     limit:  Query.limit,
     with:   Query.consistency_level
   }
+
+  @doc """
+  Retrieves data from a table based on the parameters and returns all rows
+  of the result set.
+
+    select :all,
+      from: "wocky_shared.user",
+      where: %{server: "foo"},
+      limit: 1
+
+    select :all,
+      from: "user", in: "wocky_shared",
+      where: %{server: "foo"},
+      limit: 1
+      with: :quorum
+  """
+  @spec select(Query.columns, Keyword.t) :: Query.rows
+  def select(columns, query) do
+    %__MODULE__{
+      values: columns,
+      from: Keyword.fetch!(query, :from), in: query[:in],
+      where: Keyword.get(query, :where, %{}),
+      limit: query[:limit],
+      with: query[:with]
+    }
+    |> Query.run!
+    |> Query.all_rows
+  end
 
   defimpl Schemata.Queryable do
     def to_query(select) do

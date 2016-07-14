@@ -5,7 +5,6 @@ defmodule Schemata.Mixfile do
     [app: :schemata,
      version: "0.1.0",
      elixir: "~> 1.3",
-     compilers: [:elixir, :erlang, :app],
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: Coverex.Task, ignore_modules: [:schemata]],
@@ -27,7 +26,7 @@ defmodule Schemata.Mixfile do
   end
 
   def application do
-    [description: 'Schemata library for interacting with Cassandra',
+    [description: 'Elixir library for interacting with Cassandra',
      applications: [:cqerl],
      env: []]
   end
