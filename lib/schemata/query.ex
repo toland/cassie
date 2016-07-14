@@ -1,13 +1,6 @@
 defmodule Schemata.Query do
   @moduledoc ""
 
-  defmacro __using__(_opts) do
-    quote do
-      alias Schemata.Query
-      alias Schemata.Query.Select
-    end
-  end
-
   use Schemata.CQErl
   alias Schemata.Query
   alias Schemata.Queryable
@@ -29,6 +22,13 @@ defmodule Schemata.Query do
   @opaque result          :: record(:cql_result)
   @type query_result      :: CQErl.query_result
 
+  @type t :: %Query{
+    statement:   binary,
+    values:      values,
+    keyspace:    keyspace,
+    consistency: consistency_level
+  }
+
   @enforce_keys [:statement]
   defstruct [
     statement:   nil,
@@ -37,12 +37,12 @@ defmodule Schemata.Query do
     consistency: :quorum
   ]
 
-  @type t :: %Query{
-    statement:   binary,
-    values:      values,
-    keyspace:    keyspace,
-    consistency: consistency_level
-  }
+  defmacro __using__(_opts) do
+    quote do
+      alias Schemata.Query
+      alias Schemata.Query.Select
+    end
+  end
 
   @doc """
   Execute a query.
@@ -100,4 +100,17 @@ defmodule Schemata.Query do
   """
   @spec all_rows(Query.result) :: rows
   def all_rows(result), do: CQErl.all_rows(result)
+
+  @doc """
+  Extracts the value of the first column of the first row from a query result
+  """
+  @spec single_result(Query.result) :: term | :not_found
+  def single_result(result) do
+    case CQErl.head(result) do
+      :empty_dataset -> :not_found
+      map ->
+        {_, value} = map |> Map.to_list |> hd
+        value
+    end
+  end
 end

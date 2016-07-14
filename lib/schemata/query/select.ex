@@ -3,6 +3,15 @@ defmodule Schemata.Query.Select do
 
   alias Schemata.Query
 
+  @type t :: %__MODULE__{
+    values: Query.columns,
+    from:   Query.table,
+    in:     Query.keyspace,
+    where:  Query.conditions,
+    limit:  Query.limit,
+    with:   Query.consistency_level
+  }
+
   @enforce_keys [:from]
   defstruct [
     values: :all,
@@ -13,27 +22,18 @@ defmodule Schemata.Query.Select do
     with:   :quorum
   ]
 
-  @type t :: %__MODULE__{
-    values: Query.columns,
-    from:   Query.table,
-    in:     Query.keyspace,
-    where:  Query.conditions,
-    limit:  Query.limit,
-    with:   Query.consistency_level
-  }
-
   @doc """
   Retrieves data from a table based on the parameters and returns all rows
   of the result set.
 
     select :all,
-      from: "wocky_shared.user",
-      where: %{server: "foo"},
+      from: "my_db.users",
+      where: %{user_id: "bob"},
       limit: 1
 
     select :all,
-      from: "user", in: "wocky_shared",
-      where: %{server: "foo"},
+      from: "users", in: "my_db",
+      where: %{user_id: "bob"},
       limit: 1
       with: :quorum
   """
@@ -60,7 +60,7 @@ defmodule Schemata.Query.Select do
       }
     end
 
-    defp statement(select) do
+    def statement(select) do
       """
       SELECT #{columns(select.values, "*")} FROM #{select.from} \
       #{conditions(Map.keys(select.where))} #{limit(select.limit)}
