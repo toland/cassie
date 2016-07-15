@@ -5,10 +5,16 @@ defmodule TestMigration do
   ]
 
   def up do
-    IO.write "migrate up"
+    create_table "users", in: "schemata_test",
+      columns: [
+        user_id:    :text,
+        email:      :text,
+        created_at: :timestamp
+      ],
+      primary_key: [:user_id]
   end
 
-  # def down do
-  #   IO.write "migrate down"
-  # end
+  def down do
+    drop :table, "users", in: "schemata_test"
+  end
 end
