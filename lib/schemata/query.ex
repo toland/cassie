@@ -7,8 +7,10 @@ defmodule Schemata.Query do
 
   @type keyspace          :: nil | binary
   @type table             :: atom | binary
-  @type explicit_columns  :: [atom]
+  @type column            :: atom | binary
+  @type explicit_columns  :: [column]
   @type columns           :: :all | explicit_columns
+  @type datatype          :: CQErl.datatype
   @type conditions        :: map
   @type consistency_level :: CQErl.consistency_level
   @type statement         :: CQErl.query_statement
@@ -22,9 +24,9 @@ defmodule Schemata.Query do
   @opaque result          :: record(:cql_result)
   @type query_result      :: CQErl.query_result
 
-  @type column_def        :: [{atom, atom
-                                   | {:set | :list, atom}
-                                   | {:map, atom, atom}}]
+  @type column_def        :: [{atom, datatype
+                                   | {:set | :list, datatype}
+                                   | {:map, datatype, datatype}}]
   @type primary_key       :: atom | [[atom] | atom]
   @type ordering          :: atom | [{atom, :asc | :desc}]
   @type ks_strategy       :: :simple | :network_topology

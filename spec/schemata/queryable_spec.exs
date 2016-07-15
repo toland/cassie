@@ -220,6 +220,27 @@ defmodule Schemata.Queryable.CreateTableSpec do
   context "Create Table", do: it_behaves_like(Schemata.QueryableSpec)
 end
 
+defmodule Schemata.Queryable.AlterTableSpec do
+  use ESpec
+
+  alias Schemata.Query.AlterTable
+
+  before do
+    {:shared, queries: [
+      {"ALTER TABLE users ALTER email TYPE text",
+       %AlterTable{named: "users", column: :email, op: {:alter, :text}}},
+      {"ALTER TABLE users ADD email text",
+       %AlterTable{named: "users", column: :email, op: {:add, :text}}},
+      {"ALTER TABLE users RENAME email TO mail",
+       %AlterTable{named: "users", column: :email, op: {:rename, :mail}}},
+      {"ALTER TABLE users DROP email",
+       %AlterTable{named: "users", column: :email, op: :drop}},
+    ]}
+  end
+
+  context "Alter Table", do: it_behaves_like(Schemata.QueryableSpec)
+end
+
 defmodule Schemata.Queryable.CreateIndexSpec do
   use ESpec
 

@@ -138,6 +138,29 @@ defmodule Schemata do
   end
 
   @doc """
+  Alters an existing table.
+
+    alter_table :users, in: "my_keyspace",
+      alter: :email, type: :text
+
+    alter_table :users, in: "my_keyspace",
+      add: :email, type: :text
+
+    alter_table :users, in: "my_keyspace",
+      drop: :email
+
+    alter_table :users, in: "my_keyspace",
+      rename: :email, to: :email_address
+  """
+  @spec alter_table(Query.table, map) :: :ok
+  def alter_table(name, query) do
+    %{query | named: name}
+    |> Schemata.Query.AlterTable.from_map
+    |> Query.run!
+    :ok
+  end
+
+  @doc """
   Creates an index.
 
     create_index on: :users, keys: [:user, :email]
