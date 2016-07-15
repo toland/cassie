@@ -1,4 +1,4 @@
-defmodule Schemata.Query.Update do
+defmodule Schemata.Query.Truncate do
   @moduledoc ""
 
   import Schemata.Query.Helper
@@ -7,17 +7,13 @@ defmodule Schemata.Query.Update do
   @type t :: %__MODULE__{
     table:  Query.table,
     in:     Query.keyspace,
-    set:    Query.values,
-    where:  Query.values,
     with:   Query.consistency_level
   }
 
-  @enforce_keys [:table, :set]
+  @enforce_keys [:table]
   defstruct [
     table:  nil,
     in:     nil,
-    set:    nil,
-    where:  %{},
     with:   :quorum
   ]
 
@@ -27,21 +23,17 @@ defmodule Schemata.Query.Update do
   @spec from_map(map) :: __MODULE__.t
   def from_map(map) do
     query_from_map map,
-      take: [:table, :in, :set, :where, :with],
-      required: [:table, :set],
-      return: %__MODULE__{table: "bogus", set: %{}}
+      take: [:table, :in, :with],
+      required: [:table],
+      return: %__MODULE__{table: "bogus"}
   end
 
   defimpl Schemata.Queryable do
     def statement(struct) do
-      """
-      UPDATE #{struct.table} SET #{struct.set |> Map.keys |> update_columns} \
-      #{conditions(struct.where |> Map.keys)}
-      """
-      |> String.trim
+      "TRUNCATE TABLE #{struct.table}"
     end
 
-    def values(struct), do: Map.merge(struct.set, struct.where)
+    def values(_struct), do: %{}
     def keyspace(struct), do: struct.in
     def consistency(struct), do: struct.with
   end

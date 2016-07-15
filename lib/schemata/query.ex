@@ -22,6 +22,15 @@ defmodule Schemata.Query do
   @opaque result          :: record(:cql_result)
   @type query_result      :: CQErl.query_result
 
+  @type column_def        :: [{atom, atom
+                                   | {:set | :list, atom}
+                                   | {:map, atom, atom}}]
+  @type primary_key       :: atom | [[atom] | atom]
+  @type ordering          :: atom | [{atom, :asc | :desc}]
+  @type ks_strategy       :: :simple | :network_topology
+  @type ks_factor         :: {atom | binary, non_neg_integer}
+                           | non_neg_integer
+
   @type t :: %Query{
     statement:   binary,
     values:      values,
@@ -36,6 +45,8 @@ defmodule Schemata.Query do
     keyspace:    nil,
     consistency: :quorum
   ]
+
+  @callback from_map(map) :: map
 
   defmacro __using__(_opts) do
     quote do
@@ -79,8 +90,19 @@ defmodule Schemata.Query do
 
   @doc ""
   @spec run(Query.t | Queryable.t) :: query_result
-  def run(%Query{} = query), do: CQErl.run_query(to_cql_query(query))
-  def run(queryable), do: queryable |> Queryable.to_query |> run
+  def run(%Query{} = query), do: query |> to_cql_query |> CQErl.run_query
+  def run(queryable), do: queryable |> to_query |> run
+
+  @doc ""
+  @spec to_query(Queryable.t) :: Query.t
+  def to_query(struct) do
+    %Query{
+      statement:   Queryable.statement(struct),
+      values:      Queryable.values(struct),
+      keyspace:    Queryable.keyspace(struct),
+      consistency: Queryable.consistency(struct)
+    }
+  end
 
   defp to_cql_query(query) do
     cql_query(

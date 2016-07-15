@@ -1,23 +1,21 @@
-defmodule Schemata.Query.Update do
+defmodule Schemata.Query.Drop do
   @moduledoc ""
 
   import Schemata.Query.Helper
   alias Schemata.Query
 
   @type t :: %__MODULE__{
-    table:  Query.table,
+    object: :keyspace | :table | :index | :materialized_view,
+    named:  Query.table,
     in:     Query.keyspace,
-    set:    Query.values,
-    where:  Query.values,
     with:   Query.consistency_level
   }
 
-  @enforce_keys [:table, :set]
+  @enforce_keys [:object, :named]
   defstruct [
-    table:  nil,
+    object: nil,
+    named:  nil,
     in:     nil,
-    set:    nil,
-    where:  %{},
     with:   :quorum
   ]
 
@@ -27,21 +25,20 @@ defmodule Schemata.Query.Update do
   @spec from_map(map) :: __MODULE__.t
   def from_map(map) do
     query_from_map map,
-      take: [:table, :in, :set, :where, :with],
-      required: [:table, :set],
-      return: %__MODULE__{table: "bogus", set: %{}}
+      take: [:object, :named, :in, :with],
+      required: [:object, :named],
+      return: %__MODULE__{object: :table, named: "bogus"}
   end
 
   defimpl Schemata.Queryable do
     def statement(struct) do
       """
-      UPDATE #{struct.table} SET #{struct.set |> Map.keys |> update_columns} \
-      #{conditions(struct.where |> Map.keys)}
+      DROP #{struct.object |> object_name} IF EXISTS #{struct.named}
       """
       |> String.trim
     end
 
-    def values(struct), do: Map.merge(struct.set, struct.where)
+    def values(_struct), do: %{}
     def keyspace(struct), do: struct.in
     def consistency(struct), do: struct.with
   end

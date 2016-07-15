@@ -1,22 +1,22 @@
-defmodule Schemata.Query.Update do
+defmodule Schemata.Query.Delete do
   @moduledoc ""
 
   import Schemata.Query.Helper
   alias Schemata.Query
 
   @type t :: %__MODULE__{
-    table:  Query.table,
+    from:   Query.table,
     in:     Query.keyspace,
-    set:    Query.values,
+    values: Query.columns,
     where:  Query.values,
     with:   Query.consistency_level
   }
 
-  @enforce_keys [:table, :set]
+  @enforce_keys [:from]
   defstruct [
-    table:  nil,
+    from:   nil,
     in:     nil,
-    set:    nil,
+    values: :all,
     where:  %{},
     with:   :quorum
   ]
@@ -27,21 +27,22 @@ defmodule Schemata.Query.Update do
   @spec from_map(map) :: __MODULE__.t
   def from_map(map) do
     query_from_map map,
-      take: [:table, :in, :set, :where, :with],
-      required: [:table, :set],
-      return: %__MODULE__{table: "bogus", set: %{}}
+      take: [:from, :in, :values, :where, :with],
+      required: [:from],
+      return: %__MODULE__{from: "bogus"}
   end
 
   defimpl Schemata.Queryable do
     def statement(struct) do
       """
-      UPDATE #{struct.table} SET #{struct.set |> Map.keys |> update_columns} \
+      DELETE #{columns(struct.values, "")} FROM #{struct.from} \
       #{conditions(struct.where |> Map.keys)}
       """
       |> String.trim
+      |> squeeze
     end
 
-    def values(struct), do: Map.merge(struct.set, struct.where)
+    def values(struct), do: struct.where
     def keyspace(struct), do: struct.in
     def consistency(struct), do: struct.with
   end

@@ -24,7 +24,7 @@ defmodule Schemata.Migrator do
 
   use Schemata.CQErl
   alias Schemata.Migration
-  import Schemata.Query.Select, only: [select: 2]
+  import Schemata, only: [select: 2]
 
   @keyspace "schemata"
   @table "migrations"
