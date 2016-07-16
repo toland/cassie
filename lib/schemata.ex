@@ -3,6 +3,20 @@ defmodule Schemata do
 
   alias Schemata.Query
 
+  defmodule CassandraError do
+    @moduledoc ""
+
+    defexception [
+      error_message: nil,
+      error_code:    nil,
+      query:         nil
+    ]
+
+    def message(%__MODULE__{error_message: message, error_code: code}) do
+      "Error Code #{code}: #{message}"
+    end
+  end
+
   @doc """
   Retrieves data from a table based on the parameters and returns all rows
   of the result set.

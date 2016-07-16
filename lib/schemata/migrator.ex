@@ -9,77 +9,48 @@ defmodule Schemata.Migrator do
     defexception [message: nil]
   end
 
-  defmodule CassandraError do
-    @moduledoc ""
-
-    defexception [
-        error_message: nil,
-        error_code: nil
-      ]
-
-    def message(%__MODULE__{error_message: message, error_code: code}) do
-      "Error Code #{code}: #{message}"
-    end
-  end
-
   use Schemata.CQErl
   alias Schemata.Migration
-  import Schemata, only: [select: 2]
+  import Schemata
 
   @keyspace "schemata"
   @table "migrations"
 
-  def run(path, :up, _opts) do
+  def run(path, dir, opts) do
     ensure_migrations_table!
 
-    to_apply =
-      path
-      |> migrations
-      |> Enum.filter(fn %Migration{applied_at: a} -> is_nil(a) end)
-
-    case to_apply do
-      [] -> Logger.info("Already up")
+    case applicable_migrations(path, dir, opts) do
+      [] -> Logger.info("Already #{dir}")
       to_apply  ->
         {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :up)])
         Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
     end
   end
-  def run(path, :down, opts) do
-    ensure_migrations_table!
-
-    n = Keyword.get(opts, :n, 1)
-
-    to_apply =
-      path
-      |> migrations
-      |> Enum.filter(fn %Migration{applied_at: a} -> a end)
-      |> Enum.reverse
-      |> Enum.take(n)
-
-    case to_apply do
-      [] -> Logger.info("Already down")
-      to_apply  ->
-        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :down)])
-        Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
-    end
-  end
 
   def ensure_migrations_table! do
-    create_keyspace = """
-    CREATE KEYSPACE IF NOT EXISTS #{@keyspace}
-    WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};
-    """
+    create_keyspace @keyspace
+    create_table @table, in: @keyspace,
+      columns: [
+        authored_at: :timestamp,
+        description: :text,
+        applied_at:  :timestamp
+      ],
+      primary_key: [:authored_at, :description]
+  end
 
-    create_table = """
-    CREATE TABLE IF NOT EXISTS #{@keyspace}.#{@table} (
-      authored_at timestamp,
-      description varchar,
-      applied_at timestamp,
-      PRIMARY KEY (authored_at, description)
-    );
-    """
-    execute(create_keyspace)
-    execute(create_table)
+  defp applicable_migrations(path, :up, _opts) do
+    path
+    |> migrations
+    |> Enum.filter(fn %Migration{applied_at: a} -> is_nil(a) end)
+  end
+  defp applicable_migrations(path, :down, opts) do
+    n = Keyword.get(opts, :n, 1)
+
+    path
+    |> migrations
+    |> Enum.filter(fn %Migration{applied_at: a} -> a end)
+    |> Enum.reverse
+    |> Enum.take(n)
   end
 
   def migrations(path) do
@@ -121,8 +92,7 @@ defmodule Schemata.Migrator do
   defp migrate(migration = %Migration{filename: file}, direction) do
     :ok = Logger.info("== Migrating #{file} #{direction}")
     apply(migration.module, direction, [])
-    {query, values} = make_db_query(migration, direction)
-    execute(query, values)
+    update_db(migration, direction)
   rescue
     e in [Schemata.Migrator.CassandraError] ->
       :ok = Logger.error(Exception.message(e))
@@ -133,39 +103,16 @@ defmodule Schemata.Migrator do
   defp maybe_roll_back(_migration, :down), do: :ok
   defp maybe_roll_back(migration, :up), do: migrate(migration, :down)
 
-  defp make_db_query(%Migration{authored_at: a, description: d}, :up) do
-    query = """
-    INSERT INTO #{@keyspace}.#{@table}
-      (authored_at, description, applied_at)
-    VALUES
-      (?, ?, ?);
-    """
-    values = %{
-      authored_at: a,
-      description: d,
-      applied_at: System.system_time(:milliseconds)
-    }
-    {query, values}
+  defp update_db(%Migration{authored_at: a, description: d}, :up) do
+    insert into: @table, in: @keyspace,
+      values: %{
+        authored_at: a,
+        description: d,
+        applied_at: System.system_time(:milliseconds)
+      }
   end
-
-  defp make_db_query(%Migration{authored_at: a, description: d}, :down) do
-    query = """
-    DELETE FROM #{@keyspace}.#{@table}
-    WHERE authored_at = ? AND description = ?;
-    """
-    values = %{authored_at: a, description: d}
-    {query, values}
-  end
-
-  defp execute(statement, values \\ %{}) do
-    query = cql_query(statement: statement, values: values)
-    case CQErl.run_query(query) do
-      {:ok, :void} -> :ok
-      {:ok, result} -> CQErl.all_rows(result)
-      {:error, {8704, _, _}} -> []
-      {:error, {code, msg, _}} -> raise CassandraError, [
-       query: statement, error_message: msg, error_code: code
-      ]
-    end
+  defp update_db(%Migration{authored_at: a, description: d}, :down) do
+    delete from: @table, in: @keyspace,
+      where: %{authored_at: a, description: d}
   end
 end

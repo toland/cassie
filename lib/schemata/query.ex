@@ -4,6 +4,7 @@ defmodule Schemata.Query do
   use Schemata.CQErl
   alias Schemata.Query
   alias Schemata.Queryable
+  alias Schemata.CassandraError
 
   @type keyspace          :: nil | binary
   @type table             :: atom | binary
@@ -57,6 +58,13 @@ defmodule Schemata.Query do
     end
   end
 
+  defimpl Queryable do
+    def statement(struct),   do: struct.statement
+    def values(struct),      do: struct.values
+    def keyspace(struct),    do: struct.keyspace
+    def consistency(struct), do: struct.consistency
+  end
+
   @doc """
   Execute a query.
 
@@ -86,8 +94,15 @@ defmodule Schemata.Query do
   @doc ""
   @spec run!(Query.t | Queryable.t) :: :void | Query.result
   def run!(query) do
-    {:ok, result} = run(query)
-    result
+    case run(query) do
+      {:ok, result} -> result
+      {:error, :no_clients} ->
+        raise CassandraError, [ query: Queryable.statement(query),
+          error_message: "No clients available", error_code: 0 ]
+      {:error, {code, msg, _}} ->
+        raise CassandraError, [ query: Queryable.statement(query),
+          error_message: msg, error_code: code ]
+    end
   end
 
   @doc ""
