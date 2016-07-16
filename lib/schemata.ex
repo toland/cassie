@@ -34,7 +34,8 @@ defmodule Schemata do
   """
   @spec select(Query.columns, Keyword.t) :: Query.rows
   def select(columns, query) do
-    %{query | values: columns}
+    query
+    |> Map.put(:values, columns)
     |> Schemata.Query.Select.from_map
     |> Query.run!
     |> Query.all_rows
@@ -69,7 +70,8 @@ defmodule Schemata do
   """
   @spec update(Query.table, Keyword.t) :: :ok
   def update(table, query) do
-    %{query | table: table}
+    query
+    |> Map.put(:table, table)
     |> Schemata.Query.Update.from_map
     |> Query.run!
     :ok
@@ -110,7 +112,8 @@ defmodule Schemata do
   """
   @spec drop(atom, Keyword.t) :: :ok
   def drop(object, query) do
-    %{query | object: object}
+    query
+    |> Map.put(:object, object)
     |> Schemata.Query.Drop.from_map
     |> Query.run!
     :ok
@@ -124,8 +127,9 @@ defmodule Schemata do
       factor: 1
   """
   @spec create_keyspace(Query.keyspace, map) :: :ok
-  def create_keyspace(name, query) do
-    %{query | named: name}
+  def create_keyspace(name, query \\ %{}) do
+    query
+    |> Map.put(:named, name)
     |> Schemata.Query.CreateKeyspace.from_map
     |> Query.run!
     :ok
@@ -145,7 +149,8 @@ defmodule Schemata do
   """
   @spec create_table(Query.table, map) :: :ok
   def create_table(name, query) do
-    %{query | named: name}
+    query
+    |> Map.put(:named, name)
     |> Schemata.Query.CreateTable.from_map
     |> Query.run!
     :ok
@@ -168,7 +173,8 @@ defmodule Schemata do
   """
   @spec alter_table(Query.table, map) :: :ok
   def alter_table(name, query) do
-    %{query | named: name}
+    query
+    |> Map.put(:named, name)
     |> Schemata.Query.AlterTable.from_map
     |> Query.run!
     :ok
@@ -198,7 +204,8 @@ defmodule Schemata do
   """
   @spec create_view(Query.table, map) :: :ok
   def create_view(name, query) do
-    %{query | named: name}
+    query
+    |> Map.put(:named, name)
     |> Schemata.Query.CreateView.from_map
     |> Query.run!
     :ok

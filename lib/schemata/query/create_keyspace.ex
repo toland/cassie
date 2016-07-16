@@ -40,7 +40,7 @@ defmodule Schemata.Query.CreateKeyspace do
     end
 
     def values(_struct), do: %{}
-    def keyspace(struct), do: struct.in
+    def keyspace(_struct), do: nil
     def consistency(struct), do: struct.with
   end
 end
