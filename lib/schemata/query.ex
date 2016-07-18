@@ -97,11 +97,17 @@ defmodule Schemata.Query do
     case run(query) do
       {:ok, result} -> result
       {:error, :no_clients} ->
-        raise CassandraError, [ query: Queryable.statement(query),
-          error_message: "No clients available", error_code: 0 ]
+        raise CassandraError, [
+          query: Queryable.statement(query),
+          error_message: "No clients available",
+          error_code: 0
+        ]
       {:error, {code, msg, _}} ->
-        raise CassandraError, [ query: Queryable.statement(query),
-          error_message: msg, error_code: code ]
+        raise CassandraError, [
+          query: Queryable.statement(query),
+          error_message: msg,
+          error_code: code
+        ]
     end
   end
 

@@ -5,7 +5,8 @@ defmodule Schemata.QueryableSpec do
 
   context "CQL statement generation for Queryables" do
     it "should generate the appropriate statement" do
-      for {stmt, qry} <- shared.queries, do: Queryable.statement(qry) |> should(eq stmt)
+      for {stmt, qry} <- shared.queries,
+        do: qry |> Queryable.statement |> should(eq stmt)
     end
   end
 end
@@ -23,8 +24,8 @@ defmodule Schemata.Queryable.SelectSpec do
        %Select{from: :users, values: [], where: %{user: ""}}},
       {"SELECT * FROM users WHERE server = ? AND user = ?",
        %Select{from: :users, values: :all, where: %{user: "", server: ""}}},
-      {"SELECT * FROM users WHERE server = ? AND user = ? LIMIT 1",
-       %Select{from: :users, values: :all, where: %{user: "", server: ""}, limit: 1}},
+      {"SELECT * FROM users WHERE server = ? LIMIT 1",
+       %Select{from: :users, values: :all, where: %{server: ""}, limit: 1}},
       {"SELECT user FROM users",
        %Select{from: "users", values: [:user]}},
       {"SELECT user FROM users WHERE server = ?",
@@ -78,11 +79,14 @@ defmodule Schemata.Queryable.UpdateSpec do
       {"UPDATE users SET password = ? WHERE user = ?",
        %Update{table: "users", set: %{password: ""}, where: %{user: ""}}},
       {"UPDATE users SET password = ? WHERE server = ? AND user = ?",
-       %Update{table: "users", set: %{password: ""}, where: %{user: "", server: ""}}},
+       %Update{table: "users", set: %{password: ""},
+               where: %{user: "", server: ""}}},
       {"UPDATE users SET handle = ?, password = ? WHERE user = ?",
-       %Update{table: 'users', set: %{password: "", handle: ""}, where: %{user: ""}}},
-      {"UPDATE users SET handle = ?, password = ? WHERE server = ? AND user = ?",
-       %Update{table: 'users', set: %{password: "", handle: ""}, where: %{user: "", server: ""}}}
+       %Update{table: 'users', set: %{password: "", handle: ""},
+               where: %{user: ""}}},
+      {"UPDATE users SET name = ?, password = ? WHERE server = ? AND user = ?",
+       %Update{table: 'users', set: %{password: "", name: ""},
+               where: %{user: "", server: ""}}}
     ]}
   end
 
@@ -167,7 +171,8 @@ defmodule Schemata.Queryable.CreateKeyspaceSpec do
        %CreateKeyspace{ck | strategy: :network_topology, factor: [dc1: 3]}},
       {"CREATE KEYSPACE IF NOT EXISTS test_ks WITH REPLICATION = " <>
        "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 2}",
-       %CreateKeyspace{ck | strategy: :network_topology, factor: [dc1: 3, dc2: 2]}}
+       %CreateKeyspace{ck | strategy: :network_topology,
+                            factor: [dc1: 3, dc2: 2]}}
     ]}
   end
 

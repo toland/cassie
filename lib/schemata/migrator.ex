@@ -85,7 +85,8 @@ defmodule Schemata.Migrator do
   end
 
   def migrations_applied do
-    select(:all, from: @table, in: @keyspace)
+    :all
+    |> select(from: @table, in: @keyspace)
     |> Enum.map(&Migration.from_map/1)
   end
 
@@ -97,7 +98,7 @@ defmodule Schemata.Migrator do
     e in [Schemata.Migrator.CassandraError] ->
       :ok = Logger.error(Exception.message(e))
       :ok = Logger.info("There was an error while trying to migrate #{file}")
-      maybe_roll_back(direction, migration)
+      maybe_roll_back(migration, direction)
   end
 
   defp maybe_roll_back(_migration, :down), do: :ok
