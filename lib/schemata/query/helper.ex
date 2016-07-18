@@ -2,16 +2,17 @@ defmodule Schemata.Query.Helper do
   @moduledoc false
 
   @doc false
-  def query_from_map(map, args) do
+  @spec query_from_opts(Keyword.t, Keyword.t) :: Schemata.Queryable.t
+  def query_from_opts(opts, args) do
     for field <- args[:required] do
-      unless map[field],
+      unless opts[field],
         do: raise ArgumentError, message: "Missing required field #{field}"
     end
 
     {struct, defaults} = Map.pop(args[:return], :__struct__)
 
-    map
-    |> Map.take(args[:take])
+    opts
+    |> Keyword.take(args[:take])
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
     |> Enum.into(defaults)
     |> Map.put(:__struct__, struct)

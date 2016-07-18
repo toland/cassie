@@ -29,14 +29,16 @@ defmodule Schemata.Query.AlterTable do
   @behaviour Schemata.Query
 
   @doc ""
-  @spec from_map(map) :: __MODULE__.t
-  def from_map(map) do
+  @spec from_opts(Keyword.t) :: __MODULE__.t
+  def from_opts(opts) do
+    map = Map.new(opts)
+
     new_map =
       map
       |> Map.take([:named, :in, :with])
       |> extract_op(map)
 
-    query_from_map new_map,
+    query_from_opts Map.to_list(new_map),
       take: [:named, :column, :op, :in, :with],
       required: [:named, :column, :op],
       return: %__MODULE__{named: "bogus", column: :bogus, op: :drop}

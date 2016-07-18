@@ -24,9 +24,9 @@ defmodule Schemata.Query.Update do
   @behaviour Schemata.Query
 
   @doc ""
-  @spec from_map(map) :: __MODULE__.t
-  def from_map(map) do
-    query_from_map map,
+  @spec from_opts(Keyword.t) :: __MODULE__.t
+  def from_opts(opts) do
+    query_from_opts opts,
       take: [:table, :in, :set, :where, :with],
       required: [:table, :set],
       return: %__MODULE__{table: "bogus", set: %{}}

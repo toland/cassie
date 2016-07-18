@@ -28,9 +28,9 @@ defmodule Schemata.Query.CreateView do
   @behaviour Schemata.Query
 
   @doc ""
-  @spec from_map(map) :: __MODULE__.t
-  def from_map(map) do
-    query_from_map map,
+  @spec from_opts(Keyword.t) :: __MODULE__.t
+  def from_opts(opts) do
+    query_from_opts opts,
       take: [:named, :from, :columns, :primary_key, :order_by, :in, :with],
       required: [:named, :from, :primary_key],
       return: %__MODULE__{named: "bogus", from: "bogus", primary_key: []}

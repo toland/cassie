@@ -26,9 +26,9 @@ defmodule Schemata.Query.Insert do
   @behaviour Schemata.Query
 
   @doc ""
-  @spec from_map(map) :: __MODULE__.t
-  def from_map(map) do
-    query_from_map map,
+  @spec from_opts(Keyword.t) :: __MODULE__.t
+  def from_opts(opts) do
+    query_from_opts opts,
       take: [:into, :in, :values, :unique, :ttl, :with],
       required: [:into, :values],
       return: %__MODULE__{into: "bogus", values: %{}}

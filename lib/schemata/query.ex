@@ -49,7 +49,7 @@ defmodule Schemata.Query do
     consistency: :quorum
   ]
 
-  @callback from_map(map) :: map
+  @callback from_opts(Keyword.t) :: Queryable.t
 
   defmacro __using__(_opts) do
     quote do

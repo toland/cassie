@@ -35,8 +35,8 @@ defmodule Schemata do
   @spec select(Query.columns, Keyword.t) :: Query.rows
   def select(columns, query) do
     query
-    |> Map.put(:values, columns)
-    |> Schemata.Query.Select.from_map
+    |> Keyword.put(:values, columns)
+    |> Schemata.Query.Select.from_opts
     |> Query.run!
     |> Query.all_rows
   end
@@ -56,7 +56,7 @@ defmodule Schemata do
   @spec insert(Keyword.t) :: boolean
   def insert(query) do
     query
-    |> Schemata.Query.Insert.from_map
+    |> Schemata.Query.Insert.from_opts
     |> Query.run!
     |> Query.single_result
   end
@@ -71,8 +71,8 @@ defmodule Schemata do
   @spec update(Query.table, Keyword.t) :: :ok
   def update(table, query) do
     query
-    |> Map.put(:table, table)
-    |> Schemata.Query.Update.from_map
+    |> Keyword.put(:table, table)
+    |> Schemata.Query.Update.from_opts
     |> Query.run!
     :ok
   end
@@ -87,7 +87,7 @@ defmodule Schemata do
   @spec delete(Keyword.t) :: :ok
   def delete(query) do
     query
-    |> Schemata.Query.Delete.from_map
+    |> Schemata.Query.Delete.from_opts
     |> Query.run!
     :ok
   end
@@ -100,7 +100,7 @@ defmodule Schemata do
   @spec truncate(Keyword.t) :: :ok
   def truncate(query) do
     query
-    |> Schemata.Query.Truncate.from_map
+    |> Schemata.Query.Truncate.from_opts
     |> Query.run!
     :ok
   end
@@ -113,8 +113,8 @@ defmodule Schemata do
   @spec drop(atom, Keyword.t) :: :ok
   def drop(object, query) do
     query
-    |> Map.put(:object, object)
-    |> Schemata.Query.Drop.from_map
+    |> Keyword.put(:object, object)
+    |> Schemata.Query.Drop.from_opts
     |> Query.run!
     :ok
   end
@@ -126,11 +126,11 @@ defmodule Schemata do
       strategy: :simple,
       factor: 1
   """
-  @spec create_keyspace(Query.keyspace, map) :: :ok
-  def create_keyspace(name, query \\ %{}) do
+  @spec create_keyspace(Query.keyspace, Keyword.t) :: :ok
+  def create_keyspace(name, query \\ []) do
     query
-    |> Map.put(:named, name)
-    |> Schemata.Query.CreateKeyspace.from_map
+    |> Keyword.put(:named, name)
+    |> Schemata.Query.CreateKeyspace.from_opts
     |> Query.run!
     :ok
   end
@@ -147,11 +147,11 @@ defmodule Schemata do
       primary_key: [:user_id, :email]
       order_by: [created_at: :desc]
   """
-  @spec create_table(Query.table, map) :: :ok
+  @spec create_table(Query.table, Keyword.t) :: :ok
   def create_table(name, query) do
     query
-    |> Map.put(:named, name)
-    |> Schemata.Query.CreateTable.from_map
+    |> Keyword.put(:named, name)
+    |> Schemata.Query.CreateTable.from_opts
     |> Query.run!
     :ok
   end
@@ -171,11 +171,11 @@ defmodule Schemata do
     alter_table :users, in: "my_keyspace",
       rename: :email, to: :email_address
   """
-  @spec alter_table(Query.table, map) :: :ok
+  @spec alter_table(Query.table, Keyword.t) :: :ok
   def alter_table(name, query) do
     query
-    |> Map.put(:named, name)
-    |> Schemata.Query.AlterTable.from_map
+    |> Keyword.put(:named, name)
+    |> Schemata.Query.AlterTable.from_opts
     |> Query.run!
     :ok
   end
@@ -185,10 +185,10 @@ defmodule Schemata do
 
     create_index on: :users, keys: [:user, :email]
   """
-  @spec create_index(map) :: :ok
+  @spec create_index(Keyword.t) :: :ok
   def create_index(query) do
     query
-    |> Schemata.Query.CreateIndex.from_map
+    |> Schemata.Query.CreateIndex.from_opts
     |> Query.run!
     :ok
   end
@@ -202,11 +202,11 @@ defmodule Schemata do
       primary_key: [:b],
       order_by: [b: :asc]
   """
-  @spec create_view(Query.table, map) :: :ok
+  @spec create_view(Query.table, Keyword.t) :: :ok
   def create_view(name, query) do
     query
-    |> Map.put(:named, name)
-    |> Schemata.Query.CreateView.from_map
+    |> Keyword.put(:named, name)
+    |> Schemata.Query.CreateView.from_opts
     |> Query.run!
     :ok
   end

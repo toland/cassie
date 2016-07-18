@@ -24,9 +24,9 @@ defmodule Schemata.Query.Delete do
   @behaviour Schemata.Query
 
   @doc ""
-  @spec from_map(map) :: __MODULE__.t
-  def from_map(map) do
-    query_from_map map,
+  @spec from_opts(Keyword.t) :: __MODULE__.t
+  def from_opts(opts) do
+    query_from_opts opts,
       take: [:from, :in, :values, :where, :with],
       required: [:from],
       return: %__MODULE__{from: "bogus"}
