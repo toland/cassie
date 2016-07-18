@@ -26,8 +26,9 @@ defmodule Schemata.Mixfile do
   end
 
   def application do
+    dev_apps = Mix.env == :dev && [:reprise] || []
     [description: 'Elixir library for interacting with Cassandra',
-     applications: [:cqerl],
+     applications: dev_apps ++ [:cqerl],
      env: []]
   end
 
@@ -41,6 +42,7 @@ defmodule Schemata.Mixfile do
       {:dogma,    "~> 0.1", only: :dev},
       {:credo,    "~> 0.4", only: :dev},
       {:ex_guard, "~> 1.1", only: :dev},
+      {:reprise,  "~> 0.5", only: :dev},
       {:espec,    "~> 0.8", only: :test},
       {:coverex,  "~> 1.4", only: :test},
 
