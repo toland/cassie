@@ -18,7 +18,7 @@ defmodule Schemata.Query.Delete do
     in:     nil,
     values: :all,
     where:  %{},
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

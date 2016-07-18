@@ -18,7 +18,7 @@ defmodule Schemata.Query.Update do
     in:     nil,
     set:    nil,
     where:  %{},
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

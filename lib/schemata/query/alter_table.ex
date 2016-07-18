@@ -23,7 +23,7 @@ defmodule Schemata.Query.AlterTable do
     column:      nil,
     op:          nil,
     in:          nil,
-    with:        :quorum
+    with:        nil
   ]
 
   @behaviour Schemata.Query

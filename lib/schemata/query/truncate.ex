@@ -14,7 +14,7 @@ defmodule Schemata.Query.Truncate do
   defstruct [
     table:  nil,
     in:     nil,
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

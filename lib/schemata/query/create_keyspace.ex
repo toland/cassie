@@ -16,7 +16,7 @@ defmodule Schemata.Query.CreateKeyspace do
     named:    nil,
     strategy: :simple,
     factor:   1,
-    with:     :quorum
+    with:     nil
   ]
 
   @behaviour Schemata.Query

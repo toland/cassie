@@ -20,7 +20,7 @@ defmodule Schemata.Query.Select do
     in:     nil,
     where:  %{},
     limit:  nil,
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

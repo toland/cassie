@@ -20,7 +20,7 @@ defmodule Schemata.Query.CreateTable do
     primary_key: nil,
     order_by:    [],
     in:          nil,
-    with:        :quorum
+    with:        nil
   ]
 
   @behaviour Schemata.Query

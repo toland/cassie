@@ -16,7 +16,7 @@ defmodule Schemata.Query.CreateIndex do
     on:     nil,
     keys:   [],
     in:     nil,
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

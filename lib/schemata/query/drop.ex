@@ -16,7 +16,7 @@ defmodule Schemata.Query.Drop do
     object: nil,
     named:  nil,
     in:     nil,
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query

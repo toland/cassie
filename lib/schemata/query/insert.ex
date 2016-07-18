@@ -20,7 +20,7 @@ defmodule Schemata.Query.Insert do
     values: nil,
     unique: false,
     ttl:    nil,
-    with:   :quorum
+    with:   nil
   ]
 
   @behaviour Schemata.Query
