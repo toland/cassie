@@ -17,5 +17,13 @@ config :cqerl,
         auth: {:cqerl_auth_plain_handler, [{'cassandra', 'cassandra'}]}
       ],
       clients_per_server: 1
+    ],
+    client_group: [
+      hosts: ['127.0.0.1'],
+      opts: [
+        keyspace: :schemata,
+        auth: {:cqerl_auth_plain_handler, [{'cassandra', 'cassandra'}]}
+      ],
+      clients_per_server: 1
     ]
   ]
