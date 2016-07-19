@@ -19,6 +19,8 @@ defmodule Schemata.Migration do
     opt_authored_at = opts[:authored_at]
 
     quote do
+      import Schemata
+
       @behaviour Schemata.Migration
 
       if unquote(opt_description) do

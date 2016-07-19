@@ -31,27 +31,23 @@ defmodule Schemata.Query.AlterTable do
   @doc ""
   @spec from_opts(Keyword.t) :: __MODULE__.t
   def from_opts(opts) do
-    map = Map.new(opts)
-
-    new_map =
-      map
-      |> Map.take([:named, :in, :with])
-      |> extract_op(map)
-
-    query_from_opts Map.to_list(new_map),
-      take: [:named, :column, :op, :in, :with],
-      required: [:named, :column, :op],
-      return: %__MODULE__{named: "bogus", column: :bogus, op: :drop}
+    opts
+    |> extract_op(Map.new(opts))
+    |> query_from_opts([
+         take: [:named, :column, :op, :in, :with],
+         required: [:named, :column, :op],
+         return: %__MODULE__{named: "bogus", column: :bogus, op: :drop}
+       ])
   end
 
-  defp extract_op(m, %{alter: column, type: type}),
-    do: %{m | column: column, op: {:alter, type}}
-  defp extract_op(m, %{add: column, type: type}),
-    do: %{m | column: column, op: {:add, type}}
-  defp extract_op(m, %{rename: column, to: to}),
-    do: %{m | column: column, op: {:rename, to}}
-  defp extract_op(m, %{drop: column}),
-    do: %{m | column: column, op: :drop}
+  defp extract_op(opts, %{alter: column, type: type}),
+    do: [opts | [column: column, op: {:alter, type}]]
+  defp extract_op(opts, %{add: column, type: type}),
+    do: [opts | [column: column, op: {:add, type}]]
+  defp extract_op(opts, %{rename: column, to: to}),
+    do: [opts | [column: column, op: {:rename, to}]]
+  defp extract_op(opts, %{drop: column}),
+    do: [opts | [column: column, op: :drop]]
 
   defimpl Schemata.Queryable do
     def statement(struct) do

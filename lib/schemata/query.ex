@@ -127,12 +127,17 @@ defmodule Schemata.Query do
     }
   end
 
-  defp to_cql_query(query) do
+  defp to_cql_query(struct) do
+    query =
+      struct
+      |> Map.from_struct
+      |> Enum.reject(fn {_, v} -> is_nil(v) end)
+
     cql_query(
-      keyspace:    query.keyspace,
-      statement:   query.statement,
-      values:      query.values,
-      consistency: query.consistency,
+      statement:   Keyword.get(query, :statement),
+      values:      Keyword.get(query, :values, %{}),
+      keyspace:    Keyword.get(query, :keyspace, :undefined),
+      consistency: Keyword.get(query, :consistency, :quorum),
       reusable:    true
     )
   end

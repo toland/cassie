@@ -55,10 +55,15 @@ defmodule Schemata do
   """
   @spec insert(Keyword.t) :: boolean
   def insert(query) do
-    query
-    |> Schemata.Query.Insert.from_opts
-    |> Query.run!
-    |> Query.single_result
+    result =
+      query
+      |> Schemata.Query.Insert.from_opts
+      |> Query.run!
+
+    case result do
+      :void -> true
+      _else -> Query.single_result(result)
+    end
   end
 
   @doc """
