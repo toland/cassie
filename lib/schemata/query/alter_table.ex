@@ -41,13 +41,21 @@ defmodule Schemata.Query.AlterTable do
   end
 
   defp extract_op(opts, %{alter: column, type: type}),
-    do: [opts | [column: column, op: {:alter, type}]]
+    do: opts
+        |> Keyword.put(:column, column)
+        |> Keyword.put(:op, {:alter, type})
   defp extract_op(opts, %{add: column, type: type}),
-    do: [opts | [column: column, op: {:add, type}]]
+    do: opts
+        |> Keyword.put(:column, column)
+        |> Keyword.put(:op, {:add, type})
   defp extract_op(opts, %{rename: column, to: to}),
-    do: [opts | [column: column, op: {:rename, to}]]
+    do: opts
+        |> Keyword.put(:column, column)
+        |> Keyword.put(:op, {:rename, to})
   defp extract_op(opts, %{drop: column}),
-    do: [opts | [column: column, op: :drop]]
+    do: opts
+        |> Keyword.put(:column, column)
+        |> Keyword.put(:op, :drop)
 
   defimpl Schemata.Queryable do
     def statement(struct) do
