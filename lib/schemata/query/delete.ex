@@ -28,7 +28,7 @@ defmodule Schemata.Query.Delete do
   def from_opts(opts) do
     query_from_opts opts,
       take: [:from, :in, :values, :where, :with],
-      required: [:from],
+      required: [:from, :where],
       return: %__MODULE__{from: "bogus"}
   end
 

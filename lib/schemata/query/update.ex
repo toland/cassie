@@ -28,7 +28,7 @@ defmodule Schemata.Query.Update do
   def from_opts(opts) do
     query_from_opts opts,
       take: [:table, :in, :set, :where, :with],
-      required: [:table, :set],
+      required: [:table, :set, :where],
       return: %__MODULE__{table: "bogus", set: %{}}
   end
 
