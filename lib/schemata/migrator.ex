@@ -9,6 +9,7 @@ defmodule Schemata.Migrator do
     defexception [message: nil]
   end
 
+  use Timex
   use Schemata.CQErl
   alias Schemata.Migration
   import Schemata
@@ -16,7 +17,7 @@ defmodule Schemata.Migrator do
   @keyspace "schemata"
   @table "migrations"
 
-  def run(path, dir, opts) do
+  def run(path, dir, opts \\ []) do
     ensure_migrations_table!
 
     case applicable_migrations(path, dir, opts) do
@@ -107,13 +108,20 @@ defmodule Schemata.Migrator do
   defp update_db(%Migration{authored_at: a, description: d}, :up) do
     insert into: @table, in: @keyspace,
       values: %{
-        authored_at: a,
         description: d,
-        applied_at: System.system_time(:milliseconds)
+        authored_at: timestamp(a),
+        applied_at: timestamp
       }
   end
   defp update_db(%Migration{authored_at: a, description: d}, :down) do
     delete from: @table, in: @keyspace,
-      where: %{authored_at: a, description: d}
+      where: %{authored_at: timestamp(a), description: d}
+  end
+
+  defp timestamp, do: System.system_time(:milliseconds)
+  defp timestamp(date_str) do
+    date_str
+    |> Timex.parse!("{ISO:Extended:Z}")
+    |> DateTime.to_unix(:milliseconds)
   end
 end
