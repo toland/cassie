@@ -49,7 +49,7 @@ defmodule Schemata.Migration do
       filename: file,
       module: module,
       description: module.description,
-      authored_at: module.authored_at
+      authored_at: timestamp(module.authored_at)
     }
   end
 
@@ -61,5 +61,11 @@ defmodule Schemata.Migration do
 
   defp defaults do
     Map.delete(%__MODULE__{}, :__struct__)
+  end
+
+  defp timestamp(date_str) do
+    date_str
+    |> Timex.parse!("{ISO:Extended:Z}")
+    |> DateTime.to_unix(:milliseconds)
   end
 end

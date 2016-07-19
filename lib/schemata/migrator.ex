@@ -58,17 +58,14 @@ defmodule Schemata.Migrator do
     all =
       path
       |> migrations_available
-      |> Enum.map(fn mig = %Migration{authored_at: a, description: d} ->
-        {{d, a}, mig}
-      end)
+      |> Enum.map(&transform/1)
       |> Enum.into(%{})
 
     applied =
       migrations_applied
-      |> Enum.map(fn mig = %Migration{authored_at: a, description: d} ->
-        {{d, a}, mig}
-      end)
+      |> Enum.map(&transform/1)
       |> Enum.into(%{})
+
     all
     |> Map.merge(applied, fn _k, from_file, %Migration{applied_at: a}  ->
       %Migration{from_file | applied_at: a}
@@ -77,6 +74,10 @@ defmodule Schemata.Migrator do
     |> Enum.sort(fn %Migration{authored_at: a}, %Migration{authored_at: b} ->
       a < b
     end)
+  end
+
+  defp transform(mig = %Migration{authored_at: a, description: d}) do
+    {{d, a}, mig}
   end
 
   def migrations_available(path) do
@@ -109,19 +110,14 @@ defmodule Schemata.Migrator do
     insert into: @table, in: @keyspace,
       values: %{
         description: d,
-        authored_at: timestamp(a),
+        authored_at: a,
         applied_at: timestamp
       }
   end
   defp update_db(%Migration{authored_at: a, description: d}, :down) do
     delete from: @table, in: @keyspace,
-      where: %{authored_at: timestamp(a), description: d}
+      where: %{authored_at: a, description: d}
   end
 
   defp timestamp, do: System.system_time(:milliseconds)
-  defp timestamp(date_str) do
-    date_str
-    |> Timex.parse!("{ISO:Extended:Z}")
-    |> DateTime.to_unix(:milliseconds)
-  end
 end
