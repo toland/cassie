@@ -3,12 +3,6 @@ defmodule Schemata.Migrator do
 
   require Logger
 
-  defmodule MigrationError do
-    @moduledoc ""
-
-    defexception [message: nil]
-  end
-
   use Timex
   use Schemata.CQErl
   alias Schemata.Migration
@@ -17,14 +11,23 @@ defmodule Schemata.Migrator do
   @keyspace "schemata"
   @table "migrations"
 
+  @spec run(binary, :up | :down, list) :: {:ok, :applied | :already_applied}
+                                        | {:error, term}
   def run(path, dir, opts \\ []) do
     ensure_migrations_table!
 
-    case applicable_migrations(path, dir, opts) do
-      [] -> Logger.info("Already #{dir}")
+    migrations = migrations(path)
+    case applicable_migrations(migrations, dir, opts) do
+      [] ->
+        Logger.info("Already #{dir}")
+        purge(migrations)
+        {:ok, :already_applied}
+
       to_apply  ->
-        {time, _} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, :up)])
+        {time, result} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, dir)])
         Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
+        purge(migrations)
+        result
     end
   end
 
@@ -39,16 +42,14 @@ defmodule Schemata.Migrator do
       primary_key: [:authored_at, :description]
   end
 
-  defp applicable_migrations(path, :up, _opts) do
-    path
-    |> migrations
+  defp applicable_migrations(migrations, :up, _opts) do
+    migrations
     |> Enum.filter(fn %Migration{applied_at: a} -> is_nil(a) end)
   end
-  defp applicable_migrations(path, :down, opts) do
+  defp applicable_migrations(migrations, :down, opts) do
     n = Keyword.get(opts, :n, 1)
 
-    path
-    |> migrations
+    migrations
     |> Enum.filter(fn %Migration{applied_at: a} -> a end)
     |> Enum.reverse
     |> Enum.take(n)
@@ -67,17 +68,30 @@ defmodule Schemata.Migrator do
       |> Enum.into(%{})
 
     all
-    |> Map.merge(applied, fn _k, from_file, %Migration{applied_at: a}  ->
-      %Migration{from_file | applied_at: a}
-    end)
+    |> Map.merge(applied, &merge_from_file/3)
     |> Map.values
-    |> Enum.sort(fn %Migration{authored_at: a}, %Migration{authored_at: b} ->
-      a < b
-    end)
+    |> Enum.sort(&sort_by_date/2)
   end
 
   defp transform(mig = %Migration{authored_at: a, description: d}) do
     {{d, a}, mig}
+  end
+
+  defp merge_from_file(_k, from_file, %Migration{applied_at: a}) do
+    %Migration{from_file | applied_at: a}
+  end
+
+  defp sort_by_date(%Migration{authored_at: a}, %Migration{authored_at: b}) do
+    a < b
+  end
+
+  def purge(migrations) do
+    Code.unload_files(Code.loaded_files)
+    for m <- migrations do
+      :code.purge(m.module)
+      :code.delete(m.module)
+      :code.purge(m.module)
+    end
   end
 
   def migrations_available(path) do
@@ -96,15 +110,13 @@ defmodule Schemata.Migrator do
     :ok = Logger.info("== Migrating #{file} #{direction}")
     apply(migration.module, direction, [])
     update_db(migration, direction)
+    {:ok, :applied}
   rescue
-    e in [Schemata.Migrator.CassandraError] ->
-      :ok = Logger.error(Exception.message(e))
+    error ->
+      :ok = Logger.error(Exception.message(error))
       :ok = Logger.info("There was an error while trying to migrate #{file}")
-      maybe_roll_back(migration, direction)
+      {:error, Exception.message(error)}
   end
-
-  defp maybe_roll_back(_migration, :down), do: :ok
-  defp maybe_roll_back(migration, :up), do: migrate(migration, :down)
 
   defp update_db(%Migration{authored_at: a, description: d}, :up) do
     insert into: @table, in: @keyspace,

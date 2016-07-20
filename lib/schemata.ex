@@ -17,6 +17,12 @@ defmodule Schemata do
     end
   end
 
+  defmodule MigrationError do
+    @moduledoc ""
+
+    defexception [message: nil]
+  end
+
   @doc """
   Retrieves data from a table based on the parameters and returns all rows
   of the result set.

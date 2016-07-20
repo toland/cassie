@@ -7,8 +7,4 @@ defmodule Schemata.CreateKeyspaceMigration do
   def up do
     create_keyspace :schemata_test
   end
-
-  def down do
-    drop :keyspace, named: "schemata_test"
-  end
 end

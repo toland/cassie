@@ -27,3 +27,5 @@ config :cqerl,
       clients_per_server: 1
     ]
   ]
+
+import_config "#{Mix.env}.exs"

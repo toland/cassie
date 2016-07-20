@@ -37,12 +37,12 @@ defmodule Schemata.MigratorSpec do
 
       before do
         # Schemata.drop :table, named: "users", in: "schemata_test"
-        Migrator.run(migrations_path, :up)
+        {:ok, :applied} = Migrator.run(migrations_path, :up)
       end
 
       it "add an entry into the migrations table" do
         [row] = Schemata.select :all, from: "migrations", in: "schemata"
-        row.applied_at |> should(not be_nil)
+        row.applied_at |> should_not(be_nil)
       end
     end
   end
