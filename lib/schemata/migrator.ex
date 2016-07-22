@@ -27,6 +27,11 @@ defmodule Schemata.Migrator do
     GenServer.stop(Migrator, :normal)
   end
 
+  @spec flush() :: :ok
+  def flush do
+    GenServer.call(Migrator, :flush)
+  end
+
   @spec migrations_path :: binary
   def migrations_path do
     GenServer.call(Migrator, :migrations_path)
@@ -52,23 +57,18 @@ defmodule Schemata.Migrator do
   # -------------------------------------------------------------------------
   # GenServer callbacks
 
-  def init(args) do
-    defaults = %{
-      migrations: [],
+  def init(_args) do
+    state = %State{
       keyspace: Application.fetch_env!(:schemata, :migrations_keyspace),
       table: Application.fetch_env!(:schemata, :migrations_table),
       path: Application.fetch_env!(:schemata, :migrations_path)
     }
 
-    state =
-      args
-      |> Keyword.take([:path, :keyspace, :table])
-      |> Enum.into(defaults)
-      |> Map.put(:__struct__, %State{}.__struct__)
-
     ensure_migrations_table!(state.keyspace, state.table)
 
-    {:ok, state}
+    :schemata
+    |> Application.fetch_env!(:load_migrations_on_startup)
+    |> maybe_load_migrations(state)
   end
 
   def handle_call(:migrations_path, _from, state) do
@@ -80,9 +80,7 @@ defmodule Schemata.Migrator do
   end
 
   def handle_call({:load_migrations, path}, _from, state) do
-    all = load_migrations_from_files(path)
-    applied = load_migrations_from_db(state.keyspace, state.table)
-    migrations = merge_migrations(all, applied)
+    migrations = load_migrations(path, state.keyspace, state.table)
     {:reply, :ok, %State{state | path: path, migrations: migrations}}
   end
 
@@ -99,20 +97,26 @@ defmodule Schemata.Migrator do
   end
 
   def handle_call({:migrate, dir, n}, _from, state) do
-    migrations = applicable_migrations(state.migrations, dir, n)
-    result = run_migrations(migrations, dir, state)
-    applied = load_migrations_from_db(state.keyspace, state.table)
-    migrations = merge_migrations(state.migrations, applied)
+    result =
+      state.migrations
+      |> applicable_migrations(dir, n)
+      |> run_migrations(dir, state)
+
+    migrations =
+      state.keyspace
+      |> load_migrations_from_db(state.table)
+      |> merge_migrations(state.migrations)
+
     {:reply, result, %State{state | migrations: migrations}}
   end
 
+  def handle_call(:flush, _from, state) do
+    flush(state.migrations)
+    {:reply, :ok, state}
+  end
+
   def terminate(_reason, %State{migrations: migrations}) do
-    Code.unload_files(Code.loaded_files)
-    for m <- migrations do
-      :code.purge(m.module)
-      :code.delete(m.module)
-      :code.purge(m.module)
-    end
+    flush(migrations)
   end
 
 
@@ -130,6 +134,23 @@ defmodule Schemata.Migrator do
       primary_key: [:authored_at, :description]
   end
 
+  defp maybe_load_migrations(false, state) do
+    {:ok, state}
+  end
+
+  defp maybe_load_migrations(_true, state) do
+    migrations = load_migrations(state.path, state.keyspace, state.table)
+    {:ok, %State{state | migrations: migrations}}
+  end
+
+  defp load_migrations(path, keyspace, table) do
+    all = load_migrations_from_files(path)
+
+    keyspace
+    |> load_migrations_from_db(table)
+    |> merge_migrations(all)
+  end
+
   defp load_migrations_from_files(path) do
     path
     |> File.ls!
@@ -142,7 +163,7 @@ defmodule Schemata.Migrator do
     |> Enum.map(&Migration.from_map/1)
   end
 
-  defp merge_migrations(all, applied) do
+  defp merge_migrations(applied, all) do
     all =
       all
       |> Enum.map(fn m -> %Migration{m | applied_at: nil} end)
@@ -234,5 +255,14 @@ defmodule Schemata.Migrator do
   defp update_db(%Migration{authored_at: a, description: d}, :down, state) do
     delete from: state.table, in: state.keyspace,
       where: %{authored_at: a, description: d}
+  end
+
+  defp flush(migrations) do
+    Code.unload_files(Code.loaded_files)
+    for m <- migrations do
+      :code.purge(m.module)
+      :code.delete(m.module)
+      :code.purge(m.module)
+    end
   end
 end

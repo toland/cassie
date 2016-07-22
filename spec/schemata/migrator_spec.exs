@@ -8,12 +8,11 @@ defmodule Schemata.MigratorSpec do
 
   describe "Schemata.Migrator" do
     before do
-      {:ok, _} = Migrator.start_link(keyspace: @test_keyspace)
       Schemata.truncate table: :migrations, in: @test_keyspace
     end
 
     finally do
-      Migrator.stop
+      Migrator.flush
     end
 
     let :all, do: Migrator.list_migrations

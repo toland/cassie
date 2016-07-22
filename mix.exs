@@ -30,7 +30,9 @@ defmodule Schemata.Mixfile do
     [
       description: 'Elixir library for interacting with Cassandra',
       applications: dev_apps ++ [:timex, :cqerl],
+      mod: {SchemataApp, []},
       env: [
+        load_migrations_on_startup: true,
         migrations_keyspace: "schemata",
         migrations_table: "migrations",
         migrations_path: "priv/migrations"

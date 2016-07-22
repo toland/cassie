@@ -8,14 +8,12 @@ defmodule Mix.Schemata do
     Application.fetch_env!(:schemata, :migrations_path)
   end
 
-  def prepare do
+  def start_schemata do
     {:ok, _} = Application.ensure_all_started(:schemata)
-    {:ok, _} = Migrator.start_link
-    Migrator.load_migrations
   end
 
   def migrate(dir) do
-    prepare
+    start_schemata
     Migrator.migrate(dir)
   end
 end
