@@ -9,20 +9,16 @@ defmodule Schemata.Migrator do
   require Logger
 
   defmodule State do
-    @default_keyspace "schemata"
-    @default_table "migrations"
-    @default_path "db/migrations"
-
     defstruct [
-      path:       @default_path,
-      keyspace:   @default_keyspace,
-      table:      @default_table,
-      migrations: %{}
+      path:       nil,
+      keyspace:   nil,
+      table:      nil,
+      migrations: []
     ]
   end
 
   @spec start_link(Keyword.t) :: {:ok, pid} | {:error, term}
-  def start_link(args) do
+  def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: Migrator)
   end
 
@@ -31,8 +27,13 @@ defmodule Schemata.Migrator do
     GenServer.stop(Migrator, :normal)
   end
 
+  @spec migrations_path :: binary
+  def migrations_path do
+    GenServer.call(Migrator, :migrations_path)
+  end
+
   @spec load_migrations(binary) :: :ok | {:error, term}
-  def load_migrations(path) do
+  def load_migrations(path \\ nil) do
     GenServer.call(Migrator, {:load_migrations, path})
   end
 
@@ -52,7 +53,12 @@ defmodule Schemata.Migrator do
   # GenServer callbacks
 
   def init(args) do
-    defaults = Map.from_struct(%State{})
+    defaults = %{
+      migrations: [],
+      keyspace: Application.fetch_env!(:schemata, :migrations_keyspace),
+      table: Application.fetch_env!(:schemata, :migrations_table),
+      path: Application.fetch_env!(:schemata, :migrations_path)
+    }
 
     state =
       args
@@ -65,26 +71,34 @@ defmodule Schemata.Migrator do
     {:ok, state}
   end
 
-  def handle_call({:load_migrations, path}, _from, state = %State{}) do
+  def handle_call(:migrations_path, _from, state) do
+    {:reply, state.path, state}
+  end
+
+  def handle_call({:load_migrations, nil}, from, state) do
+    handle_call({:load_migrations, state.path}, from, state)
+  end
+
+  def handle_call({:load_migrations, path}, _from, state) do
     all = load_migrations_from_files(path)
     applied = load_migrations_from_db(state.keyspace, state.table)
     migrations = merge_migrations(all, applied)
     {:reply, :ok, %State{state | path: path, migrations: migrations}}
   end
 
-  def handle_call({:list_migrations, :all}, _from, state = %State{}) do
+  def handle_call({:list_migrations, :all}, _from, state) do
     {:reply, state.migrations, state}
   end
 
-  def handle_call({:list_migrations, :applied}, _from, state = %State{}) do
+  def handle_call({:list_migrations, :applied}, _from, state) do
     {:reply, applied_migrations(state.migrations), state}
   end
 
-  def handle_call({:list_migrations, :available}, _from, state = %State{}) do
+  def handle_call({:list_migrations, :available}, _from, state) do
     {:reply, available_migrations(state.migrations), state}
   end
 
-  def handle_call({:migrate, dir, n}, _from, state = %State{}) do
+  def handle_call({:migrate, dir, n}, _from, state) do
     migrations = applicable_migrations(state.migrations, dir, n)
     result = run_migrations(migrations, dir, state)
     applied = load_migrations_from_db(state.keyspace, state.table)

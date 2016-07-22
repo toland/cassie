@@ -27,9 +27,15 @@ defmodule Schemata.Mixfile do
 
   def application do
     dev_apps = Mix.env == :dev && [:reprise] || []
-    [description: 'Elixir library for interacting with Cassandra',
-     applications: dev_apps ++ [:timex, :cqerl],
-     env: []]
+    [
+      description: 'Elixir library for interacting with Cassandra',
+      applications: dev_apps ++ [:timex, :cqerl],
+      env: [
+        migrations_keyspace: "schemata",
+        migrations_table: "migrations",
+        migrations_path: "priv/migrations"
+      ]
+    ]
   end
 
   defp aliases do
