@@ -32,6 +32,7 @@ defmodule Schemata.Mixfile do
       applications: dev_apps ++ [:timex, :cqerl],
       mod: {SchemataApp, []},
       env: [
+        clusters: [],
         load_migrations_on_startup: true,
         migrations_keyspace: "schemata",
         migrations_table: "migrations",
