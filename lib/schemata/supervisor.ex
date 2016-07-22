@@ -1,4 +1,6 @@
 defmodule Schemata.Supervisor do
+  @moduledoc ""
+
   use Supervisor
 
   def start_link do

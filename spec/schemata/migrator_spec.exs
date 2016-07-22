@@ -64,11 +64,11 @@ defmodule Schemata.MigratorSpec do
       end
 
       it "should return '{:ok, :already_applied}' when run again" do
-        expect Migrator.migrate(:up) |> to(eq {:ok, :already_applied})
+        expect :up |> Migrator.migrate |> to(eq {:ok, :already_applied})
       end
 
       it "should return an error when attempting to migrate down" do
-        expect Migrator.migrate(:down) |> to(be_error_result)
+        expect :down |> Migrator.migrate |> to(be_error_result)
       end
     end
 

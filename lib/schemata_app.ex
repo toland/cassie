@@ -1,4 +1,6 @@
 defmodule SchemataApp do
+  @moduledoc ""
+
   use Application
   use Schemata.CQErl
   require Logger

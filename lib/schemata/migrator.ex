@@ -9,6 +9,7 @@ defmodule Schemata.Migrator do
   require Logger
 
   defmodule State do
+    @moduledoc false
     defstruct [
       path:       nil,
       keyspace:   nil,
@@ -207,7 +208,8 @@ defmodule Schemata.Migrator do
     available_migrations(migrations)
   end
   defp applicable_migrations(migrations, :down, n) do
-    applied_migrations(migrations)
+    migrations
+    |> applied_migrations
     |> Enum.reverse
     |> Enum.take(n)
   end
