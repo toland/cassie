@@ -6,9 +6,10 @@ defmodule SchemataApp do
   require Logger
 
   def start(_type, _args) do
-    :schemata
-    |> Application.fetch_env!(:clusters)
-    |> configure_db
+    _ =
+      :schemata
+      |> Application.fetch_env!(:clusters)
+      |> configure_db
 
     Schemata.Supervisor.start_link()
   end
@@ -33,7 +34,7 @@ defmodule SchemataApp do
   end
 
   defp start_default_client(hosts, opts) do
-    Logger.info("Starting default client for hosts #{inspect(hosts)}")
+    :ok = Logger.info("Starting default client for hosts #{inspect(hosts)}")
     CQErl.add_group(hosts, opts, 1)
   end
 
@@ -42,7 +43,7 @@ defmodule SchemataApp do
   end
 
   defp start_keyspace_client(hosts, opts, {name, config}) do
-    Logger.info("Starting client for keyspace #{name}")
+    :ok = Logger.info("Starting client for keyspace #{name}")
     ensure_keyspace!(name, config)
 
     opts = Keyword.put(opts, :keyspace, name)

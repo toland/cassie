@@ -38,7 +38,7 @@ defmodule Schemata.Migrator do
     GenServer.call(Migrator, :migrations_path)
   end
 
-  @spec load_migrations(binary) :: :ok | {:error, term}
+  @spec load_migrations(binary | nil) :: :ok | {:error, term}
   def load_migrations(path \\ nil) do
     GenServer.call(Migrator, {:load_migrations, path})
   end
@@ -112,7 +112,7 @@ defmodule Schemata.Migrator do
   end
 
   def handle_call(:flush, _from, state) do
-    flush(state.migrations)
+    :ok = flush(state.migrations)
     {:reply, :ok, state}
   end
 
@@ -139,7 +139,7 @@ defmodule Schemata.Migrator do
     {:ok, state}
   end
 
-  defp maybe_load_migrations(_true, state) do
+  defp maybe_load_migrations(true, state) do
     migrations = load_migrations(state.path, state.keyspace, state.table)
     {:ok, %State{state | migrations: migrations}}
   end
@@ -215,12 +215,12 @@ defmodule Schemata.Migrator do
   end
 
   defp run_migrations([], dir, _state) do
-    Logger.info("== Already #{dir}")
+    :ok = Logger.info("== Already #{dir}")
     {:ok, :already_applied}
   end
   defp run_migrations(to_apply, dir, state) do
     {time, res} = :timer.tc(&apply_migrations/3, [to_apply, dir, state])
-    Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
+    :ok = Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
     res
   end
 
@@ -266,5 +266,6 @@ defmodule Schemata.Migrator do
       :code.delete(m.module)
       :code.purge(m.module)
     end
+    :ok
   end
 end

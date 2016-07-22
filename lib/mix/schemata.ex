@@ -4,16 +4,17 @@ defmodule Mix.Schemata do
   alias Schemata.Migrator
 
   def migrations_path do
-    Application.load(:schemata)
+    :ok = Application.load(:schemata)
     Application.fetch_env!(:schemata, :migrations_path)
   end
 
   def start_schemata do
     {:ok, _} = Application.ensure_all_started(:schemata)
+    :ok
   end
 
   def migrate(dir) do
-    start_schemata
+    :ok = start_schemata
     Migrator.migrate(dir)
   end
 end

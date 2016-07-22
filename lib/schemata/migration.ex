@@ -6,6 +6,14 @@ defmodule Schemata.Migration do
   @callback up() :: term
   @callback down() :: term
 
+  @type t :: %__MODULE__{
+    description: binary,
+    authored_at: integer,
+    applied_at:  integer,
+    filename:    binary,
+    module:      atom
+  }
+
   defstruct [
     description: nil,
     authored_at: nil,
@@ -32,7 +40,7 @@ defmodule Schemata.Migration do
       end
 
       def down do
-        raise Schemata.Migrator.MigrationError, [
+        raise Schemata.MigrationError, [
           message: """
           Rollback is not supported for migration: #{unquote(opt_description)}
           """

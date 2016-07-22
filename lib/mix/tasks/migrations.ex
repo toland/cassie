@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Schemata.Migrations do
   alias Schemata.Migrator
 
   def run(_args) do
-    start_schemata
+    :ok = start_schemata
 
     all = Migrator.list_migrations
 
