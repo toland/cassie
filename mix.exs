@@ -52,6 +52,7 @@ defmodule Schemata.Mixfile do
       {:espec,    "~> 0.8", only: :test},
       {:coverex,  "~> 1.4", only: :test},
       {:timex,    "~> 3.0"},
+      {:inflex,   "~> 1.7"},
 
       {:cqerl, [
         github: "hippware/cqerl",

@@ -7,9 +7,10 @@ defmodule Mix.Tasks.Schemata.Migrations do
   alias Schemata.Migration
   alias Schemata.Migrator
 
-  def run(_args, migrations \\ &Migrator.migrations/1) do
-    {:ok, _} = Application.ensure_all_started(:cqerl)
-    all = migrations.(migrations_path)
+  def run(_args) do
+    prepare
+
+    all = Migrator.list_migrations
 
     rows = Enum.map(all, fn mig = %Migration{} ->
       status = if mig.applied_at, do: "up", else: "down"

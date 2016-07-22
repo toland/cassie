@@ -3,11 +3,8 @@ defmodule Mix.Tasks.Schemata.Migrate do
 
   use Mix.Task
   import Mix.Schemata
-  alias Schemata.Migrator
 
-  def run(_args, migrator \\ &Migrator.run/3) do
-    {:ok, _} = Application.ensure_all_started(:cqerl)
-    opts = [log: true]
-    migrator.(migrations_path, :up, opts)
+  def run(_args) do
+    migrate :up
   end
 end

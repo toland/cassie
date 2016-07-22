@@ -1,26 +1,44 @@
 defmodule Mix.Tasks.Schemata.Gen do
-  @moduledoc false
+  @shortdoc "Generate a new migration"
+  @moduledoc """
+  Generate a new migration.
 
+  Provide a name in lower case with underscores:
+
+      mix schemata.gen my_new_migration
+  """
+
+  use Timex
   use Mix.Task
+  import Mix.Generator
   import Mix.Schemata
 
   def run([title]) do
-    now = System.system_time(:milliseconds)
+    create_directory migrations_path
 
-    template = ~s"""
-    -- description: <your-description-here>
-    -- authored_at: #{now}
-    -- up:
-    -- <put your up-migration here>
+    now = Timex.now
 
-    -- down:
-    -- <put your down-migration here>
+    template = """
+    defmodule Schemata.#{Inflex.camelize(title)}Migration do
+      use Schemata.Migration, [
+        authored_at: "#{Timex.format!(now, "%FT%TZ", :strftime)}",
+        description: "<your-description-here>"
+      ]
+
+      def up do
+        # <put your up-migration here>
+        :ok
+      end
+
+      def down do
+        # <put your down-migration here>
+        raise Schemata.MigrationError, message: "Cannot rollback"
+      end
+    end
     """
-    filename = "#{now}_#{title}.cql"
+    filename = "#{Timex.format!(now, "%Y%m%d%H%M%S", :strftime)}_#{title}.exs"
     filepath = Path.join(migrations_path, filename)
 
-    File.write!(filepath, template)
-
-    IO.puts "Created migration template at #{filepath}"
+    create_file(filepath, template)
   end
 end
