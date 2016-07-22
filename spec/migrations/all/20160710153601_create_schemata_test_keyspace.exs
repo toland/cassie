@@ -7,4 +7,8 @@ defmodule Schemata.CreateKeyspaceMigration do
   def up do
     create_keyspace :schemata_test
   end
+
+  def down do
+    raise Schemata.MigrationError, message: "Cannot rollback"
+  end
 end

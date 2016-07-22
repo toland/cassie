@@ -1,39 +1,113 @@
 defmodule Schemata.Migrator do
   @moduledoc ""
 
+  use Timex
+  use GenServer
+  use Schemata.CQErl
+  import Schemata
+  alias Schemata.Migration
   require Logger
 
-  use Timex
-  use Schemata.CQErl
-  alias Schemata.Migration
-  import Schemata
+  defmodule State do
+    @default_keyspace "schemata"
+    @default_table "migrations"
+    @default_path "db/migrations"
 
-  @keyspace "schemata"
-  @table "migrations"
+    defstruct [
+      path:       @default_path,
+      keyspace:   @default_keyspace,
+      table:      @default_table,
+      migrations: %{}
+    ]
+  end
 
-  @spec run(binary, :up | :down, list) :: {:ok, :applied | :already_applied}
-                                        | {:error, term}
-  def run(path, dir, opts \\ []) do
-    ensure_migrations_table!
+  @spec start_link(Keyword.t) :: {:ok, pid} | {:error, term}
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: Migrator)
+  end
 
-    migrations = migrations(path)
-    case applicable_migrations(migrations, dir, opts) do
-      [] ->
-        Logger.info("Already #{dir}")
-        purge(migrations)
-        {:ok, :already_applied}
+  @spec stop() :: :ok
+  def stop do
+    GenServer.stop(Migrator, :normal)
+  end
 
-      to_apply  ->
-        {time, result} = :timer.tc(Enum, :each, [to_apply, &migrate(&1, dir)])
-        Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
-        purge(migrations)
-        result
+  @spec load_migrations(binary) :: :ok | {:error, term}
+  def load_migrations(path) do
+    GenServer.call(Migrator, {:load_migrations, path})
+  end
+
+  @spec list_migrations(:all | :available | :applied) :: [Migration.t]
+  def list_migrations(limit \\ :all) do
+    GenServer.call(Migrator, {:list_migrations, limit})
+  end
+
+  @spec migrate(:up | :down, pos_integer) ::
+    {:ok, :applied | :already_applied} | {:error, term}
+  def migrate(dir, n \\ 1) do
+    GenServer.call(Migrator, {:migrate, dir, n})
+  end
+
+
+  # -------------------------------------------------------------------------
+  # GenServer callbacks
+
+  def init(args) do
+    defaults = Map.from_struct(%State{})
+
+    state =
+      args
+      |> Keyword.take([:path, :keyspace, :table])
+      |> Enum.into(defaults)
+      |> Map.put(:__struct__, %State{}.__struct__)
+
+    ensure_migrations_table!(state.keyspace, state.table)
+
+    {:ok, state}
+  end
+
+  def handle_call({:load_migrations, path}, _from, state = %State{}) do
+    all = load_migrations_from_files(path)
+    applied = load_migrations_from_db(state.keyspace, state.table)
+    migrations = merge_migrations(all, applied)
+    {:reply, :ok, %State{state | path: path, migrations: migrations}}
+  end
+
+  def handle_call({:list_migrations, :all}, _from, state = %State{}) do
+    {:reply, state.migrations, state}
+  end
+
+  def handle_call({:list_migrations, :applied}, _from, state = %State{}) do
+    {:reply, applied_migrations(state.migrations), state}
+  end
+
+  def handle_call({:list_migrations, :available}, _from, state = %State{}) do
+    {:reply, available_migrations(state.migrations), state}
+  end
+
+  def handle_call({:migrate, dir, n}, _from, state = %State{}) do
+    migrations = applicable_migrations(state.migrations, dir, n)
+    result = run_migrations(migrations, dir, state)
+    applied = load_migrations_from_db(state.keyspace, state.table)
+    migrations = merge_migrations(state.migrations, applied)
+    {:reply, result, %State{state | migrations: migrations}}
+  end
+
+  def terminate(_reason, %State{migrations: migrations}) do
+    Code.unload_files(Code.loaded_files)
+    for m <- migrations do
+      :code.purge(m.module)
+      :code.delete(m.module)
+      :code.purge(m.module)
     end
   end
 
-  def ensure_migrations_table! do
-    create_keyspace @keyspace
-    create_table @table, in: @keyspace,
+
+  # -------------------------------------------------------------------------
+  # Private helper functions
+
+  defp ensure_migrations_table!(keyspace, table) do
+    create_keyspace keyspace
+    create_table table, in: keyspace,
       columns: [
         authored_at: :timestamp,
         description: :text,
@@ -42,28 +116,27 @@ defmodule Schemata.Migrator do
       primary_key: [:authored_at, :description]
   end
 
-  defp applicable_migrations(migrations, :up, _opts) do
-    migrations
-    |> Enum.filter(fn %Migration{applied_at: a} -> is_nil(a) end)
-  end
-  defp applicable_migrations(migrations, :down, opts) do
-    n = Keyword.get(opts, :n, 1)
-
-    migrations
-    |> Enum.filter(fn %Migration{applied_at: a} -> a end)
-    |> Enum.reverse
-    |> Enum.take(n)
+  defp load_migrations_from_files(path) do
+    path
+    |> File.ls!
+    |> Enum.map(fn file -> path |> Path.join(file) |> Migration.load_file end)
   end
 
-  def migrations(path) do
+  defp load_migrations_from_db(keyspace, table) do
+    :all
+    |> select(from: table, in: keyspace)
+    |> Enum.map(&Migration.from_map/1)
+  end
+
+  defp merge_migrations(all, applied) do
     all =
-      path
-      |> migrations_available
+      all
+      |> Enum.map(fn m -> %Migration{m | applied_at: nil} end)
       |> Enum.map(&transform/1)
       |> Enum.into(%{})
 
     applied =
-      migrations_applied
+      applied
       |> Enum.map(&transform/1)
       |> Enum.into(%{})
 
@@ -85,32 +158,50 @@ defmodule Schemata.Migrator do
     a < b
   end
 
-  def purge(migrations) do
-    Code.unload_files(Code.loaded_files)
-    for m <- migrations do
-      :code.purge(m.module)
-      :code.delete(m.module)
-      :code.purge(m.module)
-    end
+  defp available_migrations(migrations) do
+    migrations
+    |> Enum.filter(fn %Migration{applied_at: a} -> is_nil(a) end)
   end
 
-  def migrations_available(path) do
-    path
-    |> File.ls!
-    |> Enum.map(fn file -> path |> Path.join(file) |> Migration.load_file end)
+  defp applied_migrations(migrations) do
+    migrations
+    |> Enum.filter(fn %Migration{applied_at: a} -> a end)
   end
 
-  def migrations_applied do
-    :all
-    |> select(from: @table, in: @keyspace)
-    |> Enum.map(&Migration.from_map/1)
+  defp applicable_migrations(migrations, :up, _n) do
+    available_migrations(migrations)
+  end
+  defp applicable_migrations(migrations, :down, n) do
+    applied_migrations(migrations)
+    |> Enum.reverse
+    |> Enum.take(n)
   end
 
-  defp migrate(migration = %Migration{filename: file}, direction) do
+  defp run_migrations([], dir, _state) do
+    Logger.info("== Already #{dir}")
+    {:ok, :already_applied}
+  end
+  defp run_migrations(to_apply, dir, state) do
+    {time, res} = :timer.tc(&apply_migrations/3, [to_apply, dir, state])
+    Logger.info("== Migrated in #{inspect(div(time, 10000)/10)}s")
+    res
+  end
+
+  defp apply_migrations(to_apply, dir, state) do
+    Enum.reduce_while(to_apply, {:ok, :applied},
+      fn m, res ->
+        case do_migrate(m, dir, state) do
+          :ok -> {:cont, res}
+          {:error, _} = err -> {:halt, err}
+        end
+      end)
+  end
+
+  defp do_migrate(migration = %Migration{filename: file}, direction, state) do
     :ok = Logger.info("== Migrating #{file} #{direction}")
     apply(migration.module, direction, [])
-    update_db(migration, direction)
-    {:ok, :applied}
+    update_db(migration, direction, state)
+    :ok
   rescue
     error ->
       :ok = Logger.error(Exception.message(error))
@@ -118,18 +209,16 @@ defmodule Schemata.Migrator do
       {:error, Exception.message(error)}
   end
 
-  defp update_db(%Migration{authored_at: a, description: d}, :up) do
-    insert into: @table, in: @keyspace,
+  defp update_db(%Migration{authored_at: a, description: d}, :up, state) do
+    insert into: state.table, in: state.keyspace,
       values: %{
         description: d,
         authored_at: a,
-        applied_at: timestamp
+        applied_at: System.system_time(:milliseconds)
       }
   end
-  defp update_db(%Migration{authored_at: a, description: d}, :down) do
-    delete from: @table, in: @keyspace,
+  defp update_db(%Migration{authored_at: a, description: d}, :down, state) do
+    delete from: state.table, in: state.keyspace,
       where: %{authored_at: a, description: d}
   end
-
-  defp timestamp, do: System.system_time(:milliseconds)
 end
