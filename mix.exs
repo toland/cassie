@@ -7,7 +7,7 @@ defmodule Schemata.Mixfile do
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     test_coverage: [tool: Coverex.Task, ignore_modules: [:schemata]],
+     test_coverage: [tool: Coverex.Task],
      preferred_cli_env: [espec: :test, spec: :test],
      dialyzer: [
        plt_add_deps: :transitive,
