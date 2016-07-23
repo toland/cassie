@@ -71,6 +71,44 @@ defmodule Schemata.Query do
     end
   end
 
+  def new(stmt), do: %Query{statement: stmt}
+
+  def get(%Query{values: values}, key, default \\ nil) do
+    values = values || %{}
+    Map.get(values, key, default)
+  end
+
+  def put(q = %Query{values: values}, key, value) do
+    values = values || %{}
+    %{q | values: Map.put(values, key, value)}
+  end
+
+  def delete(q = %Query{values: values}, key) do
+    values = values || %{}
+    %{q | values: Map.delete(values, key)}
+  end
+
+  def merge(q = %Query{values: values}, other) do
+    values = values || %{}
+    %{q | values: Map.merge(values, other)}
+  end
+
+  def statement(q = %Query{}, statement) do
+    %{q | statement: statement}
+  end
+
+  def page_size(q = %Query{}, page_size) when is_integer(page_size) do
+    %{q | page_size: page_size}
+  end
+
+  def consistency(q = %Query{}, consistency) do
+    %{q | consistency: consistency}
+  end
+
+  def serial_consistency(q = %Query{}, serial_consistency) do
+    %{q | serial_consistency: serial_consistency}
+  end
+
   @doc ""
   @spec run!(Query.t | Queryable.t) :: :void | Result.t
   def run!(query) do
