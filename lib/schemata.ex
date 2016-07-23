@@ -6,15 +6,24 @@ defmodule Schemata do
   defmodule CassandraError do
     @moduledoc ""
 
-    defexception [
-      error_message: nil,
-      error_code:    nil,
-      query:         nil
-    ]
+    defexception [:message, :code, :query, :stack]
 
-    def message(%__MODULE__{error_message: message, error_code: code}) do
-      "Error Code #{code}: #{message}"
-    end
+    def message(%__MODULE__{message: message, code: nil}),
+      do: message
+
+    def message(%__MODULE__{message: message, code: code}),
+      do: "Error Code #{code}: #{message}"
+
+    def exception(message) when is_bitstring(message),
+      do: %__MODULE__{message: message}
+
+    def exception(args),
+      do: %__MODULE__{
+        message: inspect(args[:message]),
+        code:    args[:code],
+        query:   args[:query],
+        stack:   args[:stack]
+      }
   end
 
   defmodule MigrationError do
