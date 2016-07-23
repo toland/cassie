@@ -85,7 +85,7 @@ defmodule Schemata do
     |> Keyword.put(:table, table)
     |> Schemata.Query.Update.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -100,7 +100,7 @@ defmodule Schemata do
     query
     |> Schemata.Query.Delete.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -113,7 +113,7 @@ defmodule Schemata do
     query
     |> Schemata.Query.Truncate.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -127,7 +127,7 @@ defmodule Schemata do
     |> Keyword.put(:object, object)
     |> Schemata.Query.Drop.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -143,7 +143,7 @@ defmodule Schemata do
     |> Keyword.put(:named, name)
     |> Schemata.Query.CreateKeyspace.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -164,7 +164,7 @@ defmodule Schemata do
     |> Keyword.put(:named, name)
     |> Schemata.Query.CreateTable.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -188,7 +188,7 @@ defmodule Schemata do
     |> Keyword.put(:named, name)
     |> Schemata.Query.AlterTable.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -201,7 +201,7 @@ defmodule Schemata do
     query
     |> Schemata.Query.CreateIndex.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
 
   @doc """
@@ -219,6 +219,8 @@ defmodule Schemata do
     |> Keyword.put(:named, name)
     |> Schemata.Query.CreateView.from_opts
     |> Query.run!
-    :ok
+    |> ignore_result
   end
+
+  defp ignore_result(_result), do: :ok
 end
