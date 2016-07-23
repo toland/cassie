@@ -2,6 +2,7 @@ defmodule Schemata do
   @moduledoc ""
 
   alias Schemata.Query
+  alias Schemata.Result
 
   defmodule CassandraError do
     @moduledoc ""
@@ -47,13 +48,13 @@ defmodule Schemata do
       limit: 1
       with: :quorum
   """
-  @spec select(Query.columns, Keyword.t) :: Query.rows
+  @spec select(Query.columns, Keyword.t) :: Result.rows
   def select(columns, query) do
     query
     |> Keyword.put(:values, columns)
     |> Schemata.Query.Select.from_opts
     |> Query.run!
-    |> Query.all_rows
+    |> Result.all_rows
   end
 
   @doc """
@@ -77,7 +78,7 @@ defmodule Schemata do
 
     case result do
       :void -> true
-      _else -> Query.single_result(result)
+      _else -> Result.single_value(result)
     end
   end
 

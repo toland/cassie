@@ -4,6 +4,7 @@ defmodule Schemata.Query do
   use Schemata.CQErl
   alias Schemata.Query
   alias Schemata.Queryable
+  alias Schemata.Result
   alias Schemata.CassandraError
 
   @type keyspace          :: nil | binary
@@ -19,10 +20,7 @@ defmodule Schemata.Query do
   @type value             :: CQErl.parameter_val
   @type values            :: map
   @type limit             :: nil | pos_integer
-  @type row               :: map
-  @type rows              :: [row]
   @type error             :: {:error, term}
-  @opaque result          :: record(:cql_result)
   @type query_result      :: CQErl.query_result
 
   @type column_def        :: [{atom, datatype
@@ -53,46 +51,15 @@ defmodule Schemata.Query do
 
   defmacro __using__(_opts) do
     quote do
+      import Schemata.Query.Sigil
+      alias Schemata.CassandraError
+      alias Schemata.Result
       alias Schemata.Query
-      alias Schemata.Query.Select
     end
   end
 
-  defimpl Queryable do
-    def statement(struct),   do: struct.statement
-    def values(struct),      do: struct.values
-    def keyspace(struct),    do: struct.keyspace
-    def consistency(struct), do: struct.consistency
-  end
-
-  @doc """
-  Execute a query.
-
-  `Context' is the context to execute the query in.
-
-  `Query' is a query string where '?' characters are substituted with
-  parameters from the `Values' list.
-
-  `Values' is a property list of column name, value pairs. The pairs must be
-  in the same order that the columns are listed in `Query'.
-
-  On successful completion, the function returns `{ok, void}' when there are
-  no results to return and `{ok, Result}' when there is. `Result' is an
-  abstract datatype that can be passed to {@link rows/1} or
-  {@link single_result/1}.
-  """
-  @spec run(keyspace, statement, values, consistency_level) :: query_result
-  def run(keyspace, statement, values, consistency) do
-    run %Query{
-      keyspace: keyspace,
-      statement: statement,
-      values: values,
-      consistency: consistency
-    }
-  end
-
   @doc ""
-  @spec run!(Query.t | Queryable.t) :: :void | Query.result
+  @spec run!(Query.t | Queryable.t) :: :void | Result.t
   def run!(query) do
     case run(query) do
       {:ok, result} -> result
@@ -147,25 +114,17 @@ defmodule Schemata.Query do
     )
   end
 
-  @doc """
-  Extracts rows from a query result
+  defimpl Queryable do
+    def statement(struct),   do: struct.statement
+    def values(struct),      do: struct.values
+    def keyspace(struct),    do: struct.keyspace
+    def consistency(struct), do: struct.consistency
+  end
 
-  Returns a list of rows. Each row is a property list of column name, value
-  pairs.
-  """
-  @spec all_rows(Query.result) :: rows
-  def all_rows(result), do: CQErl.all_rows(result)
-
-  @doc """
-  Extracts the value of the first column of the first row from a query result
-  """
-  @spec single_result(Query.result) :: term | :not_found
-  def single_result(result) do
-    case CQErl.head(result) do
-      :empty_dataset -> :not_found
-      map ->
-        {_, value} = map |> Map.to_list |> hd
-        value
+  defmodule Sigil do
+    @moduledoc ""
+    def sigil_q(statement, _modifiers) do
+      %Query{statement: statement}
     end
   end
 end
