@@ -1,8 +1,5 @@
 use Mix.Config
 
-config :cqerl,
-  text_uuids: true
-
 config :schemata,
   clusters: [
     [

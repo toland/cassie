@@ -6,12 +6,21 @@ defmodule SchemataApp do
   require Logger
 
   def start(_type, _args) do
+    configure_cqerl
+
     _ =
       :schemata
       |> Application.fetch_env!(:clusters)
       |> configure_db
 
     Schemata.Supervisor.start_link()
+  end
+
+  defp configure_cqerl do
+    # Set a few things that we depend on in cqerl
+    Application.put_env(:cqerl, :maps, true, persistent: true)
+    Application.put_env(:cqerl, :mode, :hash, persistent: true)
+    Application.put_env(:cqerl, :text_uuids, true, persistent: true)
   end
 
   defp configure_db(clusters) do
