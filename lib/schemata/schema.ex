@@ -224,7 +224,7 @@ defmodule Schemata.Schema do
 
   defp drop_table_views(keyspace, views) do
     for %CreateView{named: name} <- views,
-      do: Schemata.drop :view, named: name, in: keyspace
+      do: Schemata.drop :materialized_view, named: name, in: keyspace
   end
 
   defp create_table_views(keyspace, views) do
