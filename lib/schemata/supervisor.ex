@@ -9,7 +9,8 @@ defmodule Schemata.Supervisor do
 
   def init([]) do
     children = [
-      worker(Schemata.Migrator, [])
+      worker(Schemata.Migrator, []),
+      worker(Schemata.Schema, [])
     ]
 
     supervise(children, strategy: :one_for_one)
