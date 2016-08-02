@@ -11,10 +11,10 @@ defmodule Schemata.Migrator do
   defmodule State do
     @moduledoc false
     defstruct [
-      path:       nil,
-      keyspace:   nil,
-      table:      nil,
-      migrations: []
+      migrations_dir: nil,
+      keyspace:       nil,
+      table:          nil,
+      migrations:     []
     ]
   end
 
@@ -33,9 +33,9 @@ defmodule Schemata.Migrator do
     GenServer.call(Migrator, :flush)
   end
 
-  @spec migrations_path :: binary
-  def migrations_path do
-    GenServer.call(Migrator, :migrations_path)
+  @spec migrations_dir :: binary
+  def migrations_dir do
+    GenServer.call(Migrator, :migrations_dir)
   end
 
   @spec load_migrations(binary | nil) :: :ok | {:error, term}
@@ -60,9 +60,9 @@ defmodule Schemata.Migrator do
 
   def init(_args) do
     state = %State{
+      migrations_dir: Application.fetch_env!(:schemata, :migrations_dir),
       keyspace: Application.fetch_env!(:schemata, :migrations_keyspace),
-      table: Application.fetch_env!(:schemata, :migrations_table),
-      path: Application.fetch_env!(:schemata, :migrations_path)
+      table: Application.fetch_env!(:schemata, :migrations_table)
     }
 
     ensure_migrations_table!(state.keyspace, state.table)
@@ -72,17 +72,17 @@ defmodule Schemata.Migrator do
     |> maybe_load_migrations(state)
   end
 
-  def handle_call(:migrations_path, _from, state) do
-    {:reply, state.path, state}
+  def handle_call(:migrations_dir, _from, state) do
+    {:reply, state.migrations_dir, state}
   end
 
   def handle_call({:load_migrations, nil}, from, state) do
-    handle_call({:load_migrations, state.path}, from, state)
+    handle_call({:load_migrations, state.migrations_dir}, from, state)
   end
 
-  def handle_call({:load_migrations, path}, _from, state) do
-    migrations = load_migrations(path, state.keyspace, state.table)
-    {:reply, :ok, %State{state | path: path, migrations: migrations}}
+  def handle_call({:load_migrations, dir}, _from, state) do
+    migrations = load_migrations(dir, state.keyspace, state.table)
+    {:reply, :ok, %State{state | migrations_dir: dir, migrations: migrations}}
   end
 
   def handle_call({:list_migrations, :all}, _from, state) do
@@ -135,27 +135,29 @@ defmodule Schemata.Migrator do
       primary_key: [:authored_at, :description]
   end
 
-  defp maybe_load_migrations(false, state) do
-    {:ok, state}
-  end
-
+  defp maybe_load_migrations(false, state), do: {:ok, state}
   defp maybe_load_migrations(true, state) do
-    migrations = load_migrations(state.path, state.keyspace, state.table)
-    {:ok, %State{state | migrations: migrations}}
+    dir = state.migrations_dir
+    if File.exists?(dir) do
+      migrations = load_migrations(dir, state.keyspace, state.table)
+      {:ok, %State{state | migrations: migrations}}
+    else
+      {:ok, state}
+    end
   end
 
-  defp load_migrations(path, keyspace, table) do
-    all = load_migrations_from_files(path)
+  defp load_migrations(dir, keyspace, table) do
+    all = load_migrations_from_files(dir)
 
     keyspace
     |> load_migrations_from_db(table)
     |> merge_migrations(all)
   end
 
-  defp load_migrations_from_files(path) do
-    path
+  defp load_migrations_from_files(dir) do
+    dir
     |> File.ls!
-    |> Enum.map(fn file -> path |> Path.join(file) |> Migration.load_file end)
+    |> Enum.map(fn file -> dir |> Path.join(file) |> Migration.load_file end)
   end
 
   defp load_migrations_from_db(keyspace, table) do

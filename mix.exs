@@ -37,7 +37,7 @@ defmodule Schemata.Mixfile do
         load_migrations_on_startup: true,
         migrations_keyspace: "schemata",
         migrations_table: "migrations",
-        migrations_path: "db/migrations",
+        migrations_dir: "db/migrations",
 
         load_schema_on_startup: true,
         schema_file: "db/schema.exs"
