@@ -33,10 +33,14 @@ defmodule Schemata.Mixfile do
       mod: {SchemataApp, []},
       env: [
         clusters: [],
+
         load_migrations_on_startup: true,
         migrations_keyspace: "schemata",
         migrations_table: "migrations",
-        migrations_path: "priv/migrations"
+        migrations_path: "db/migrations",
+
+        load_schema_on_startup: true,
+        schema_file: "db/schema.exs"
       ]
     ]
   end
