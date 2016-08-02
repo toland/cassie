@@ -33,7 +33,9 @@ defmodule Schemata.Queryable.SelectSpec do
       {"SELECT user, server FROM users",
        %Select{from: "users", values: ["user", "server"]}},
       {"SELECT max(version) FROM users",
-       %Select{from: "users", values: ['max(version)']}}
+       %Select{from: "users", values: ['max(version)']}},
+      {"SELECT COUNT(*) FROM users WHERE server = ?",
+       %Select{from: "users", values: ["COUNT(*)"], where: %{server: ""}}}
     ]}
   end
 

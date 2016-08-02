@@ -58,6 +58,24 @@ defmodule Schemata do
   end
 
   @doc """
+  Retrieves data from a table based on the parameters and returns all rows
+  of the result set.
+
+    count "users", in: "my_db",
+      where: %{admin: true},
+      with: :quorum
+  """
+  @spec count(Query.table, Keyword.t) :: non_neg_integer
+  def count(table, query) do
+    query
+    |> Keyword.put(:from, table)
+    |> Keyword.put(:values, ["COUNT(*)"])
+    |> Schemata.Query.Select.from_opts
+    |> Query.run!
+    |> Result.single_value
+  end
+
+  @doc """
   Inserts the provided row into the table.
 
     insert into: "users", in: "my_keyspace",
