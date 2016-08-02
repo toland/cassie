@@ -29,7 +29,7 @@ defmodule Schemata.Mixfile do
     dev_apps = Mix.env == :dev && [:reprise] || []
     [
       description: 'Elixir library for interacting with Cassandra',
-      applications: dev_apps ++ [:timex, :cqerl],
+      applications: dev_apps ++ [:logger, :timex, :cqerl],
       mod: {SchemataApp, []},
       env: [
         clusters: [],
