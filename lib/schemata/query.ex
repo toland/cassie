@@ -297,6 +297,9 @@ defmodule Schemata.Query do
     end)
   end
 
+  defp log_query(statement, %{}) do
+    :ok = Logger.debug("Creating CQL query with statement '#{statement}'")
+  end
   defp log_query(statement, values) do
     :ok = Logger.debug("""
     Creating CQL query with statement '#{statement}' \
