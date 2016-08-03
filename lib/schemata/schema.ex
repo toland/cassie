@@ -165,8 +165,8 @@ defmodule Schemata.Schema do
     table_def = state.table_defs[table]
     Query.run(%CreateTable{table_def | in: keyspace})
 
-    create_table_indexes(keyspace, state.table_indexes[table])
-    create_table_views(keyspace, state.table_views[table])
+    create_table_indexes(keyspace, Map.get(state.table_indexes, table, []))
+    create_table_views(keyspace, Map.get(state.table_views, table, []))
 
     {:reply, :ok, state}
   end
