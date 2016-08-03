@@ -97,12 +97,12 @@ defmodule Schemata.Schema do
 
   @spec create_table(Query.keyspace, Query.table) :: :ok | {:error, term}
   def create_table(keyspace, table) do
-    GenServer.call(SchemaServer, {:create_table, keyspace, table})
+    GenServer.call(SchemaServer, {:create_table, keyspace, to_atom(table)})
   end
 
   @spec create_table!(Query.keyspace, Query.table) :: :ok | {:error, term}
   def create_table!(keyspace, table) do
-    GenServer.call(SchemaServer, {:recreate_table, keyspace, table})
+    GenServer.call(SchemaServer, {:recreate_table, keyspace, to_atom(table)})
   end
 
 
@@ -153,8 +153,7 @@ defmodule Schemata.Schema do
   end
 
   def handle_call({:recreate_table, keyspace, table}, from, state) do
-    views = state.table_views[to_atom(table)]
-    drop_table_views(keyspace, views)
+    drop_table_views(keyspace, Map.get(state.table_views, table, []))
     :ok = Schemata.drop(:table, named: table, in: keyspace)
     handle_call({:create_table, keyspace, table}, from, state)
   end
