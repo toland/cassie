@@ -269,8 +269,8 @@ defmodule Schemata.Query do
     log_query(query.statement, query.values)
     cql_query(
       statement:            query.statement,
+      keyspace:             normalize_keyspace(query.keyspace),
       values:               nullify(query.values, :undefined),
-      keyspace:             nullify(query.keyspace, :undefined),
       consistency:          nullify(query.consistency, :undefined),
       serial_consistency:   nullify(query.serial_consistency, :undefined),
       reusable:             nullify(query.reusable, :undefined),
@@ -295,10 +295,15 @@ defmodule Schemata.Query do
       cql_query(
         statement: statement,
         values:    nullify(values, :undefined),
-        keyspace:  nullify(keyspace, :undefined)
+        keyspace:  normalize_keyspace(keyspace)
       )
     end)
   end
+
+  defp normalize_keyspace(nil), do: :undefined
+  defp normalize_keyspace(ks) when is_atom(ks), do: ks
+  defp normalize_keyspace(ks) when is_list(ks), do: List.to_atom(ks)
+  defp normalize_keyspace(ks) when is_binary(ks), do: String.to_atom(ks)
 
   defp log_query(statement, %{}) do
     :ok = Logger.debug("Creating CQL query with statement '#{statement}'")
