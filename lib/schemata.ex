@@ -7,7 +7,7 @@ defmodule Schemata do
   defmodule CassandraError do
     @moduledoc ""
 
-    defexception [:message, :code, :query, :stack]
+    defexception [:message, :code, :keyspace, :query, :stack]
 
     def message(%__MODULE__{message: message, code: nil}),
       do: message
@@ -20,10 +20,11 @@ defmodule Schemata do
 
     def exception(args),
       do: %__MODULE__{
-        message: inspect(args[:message]),
-        code:    args[:code],
-        query:   args[:query],
-        stack:   args[:stack]
+        message:  to_string(args[:message]),
+        code:     args[:code],
+        keyspace: args[:keyspace],
+        query:    args[:query],
+        stack:    args[:stack]
       }
   end
 

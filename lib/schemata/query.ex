@@ -149,17 +149,20 @@ defmodule Schemata.Query do
       {:error, :no_clients} ->
         raise CassandraError, [
           query: Queryable.statement(query),
+          keyspace: Queryable.keyspace(query),
           message: "No clients available"
         ]
       {:error, {:error, {reason, stacktrace}}} ->
         raise CassandraError, [
           query: Queryable.statement(query),
+          keyspace: Queryable.keyspace(query),
           message: "CQErl processing error: #{reason}",
           stack: stacktrace
         ]
       {:error, {code, msg, _extras}} ->
         raise CassandraError, [
           query: Queryable.statement(query),
+          keyspace: Queryable.keyspace(query),
           message: msg,
           code: code
         ]
