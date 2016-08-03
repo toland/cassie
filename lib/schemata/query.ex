@@ -283,7 +283,7 @@ defmodule Schemata.Query do
 
   defp to_cql_query_batch(query_list, keyspace, consistency) do
     cql_query_batch(
-      queries:     batch_query_list(keyspace, query_list),
+      queries:     batch_query_list(query_list, keyspace),
       consistency: consistency,
       mode:        :logged
     )
