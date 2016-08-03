@@ -14,7 +14,7 @@ defmodule Schemata.Result do
 
   @doc "Returns the first row of result, as a map."
   @spec head(Result.t) :: row
-  def head(result), do: result |> CQErl.head |> nillify
+  def head(result), do: result |> CQErl.head |> maybe_drop_nulls
 
   @doc "Returns all rows of result, except the first one."
   @spec tail(t) :: Result.t
@@ -42,7 +42,7 @@ defmodule Schemata.Result do
   @spec next(Result.t) :: :empty_dataset | {row, Result.t}
   def next(result) do
     case CQErl.next(result) do
-      {row, tail} -> {nillify(row), tail}
+      {row, tail} -> {maybe_drop_nulls(row), tail}
       :empty_dataset -> :empty_dataset
     end
   end
@@ -54,7 +54,7 @@ defmodule Schemata.Result do
   """
   @spec all_rows(Result.t) :: rows
   def all_rows(result) do
-    result |> CQErl.all_rows |> Enum.map(&(nillify(&1)))
+    result |> CQErl.all_rows |> Enum.map(&(maybe_drop_nulls(&1)))
   end
 
   @doc """
@@ -76,6 +76,19 @@ defmodule Schemata.Result do
       nil -> :error
       row -> {:ok, row}
     end
+  end
+
+  defp maybe_drop_nulls(row) do
+    drop? = Application.fetch_env!(:schemata, :drop_nulls)
+    maybe_drop_nulls(drop?, row)
+  end
+
+  defp maybe_drop_nulls(false, row), do: row
+  defp maybe_drop_nulls(true, row) do
+    row
+    |> Enum.reject(fn {_, v} -> v === :null end)
+    |> nillify
+    |> Enum.into(%{})
   end
 
   defp nillify(result) when is_map(result) do
