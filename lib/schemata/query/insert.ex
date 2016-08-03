@@ -35,6 +35,8 @@ defmodule Schemata.Query.Insert do
   end
 
   defimpl Schemata.Queryable do
+    alias Schemata.Query.Insert
+
     def statement(struct) do
       keys = Map.keys(struct.values)
 
@@ -47,7 +49,9 @@ defmodule Schemata.Query.Insert do
       |> squeeze
     end
 
-    def values(struct), do: struct.values
+    def values(%Insert{ttl: nil} = struct), do: struct.values
+    def values(struct), do: Map.put(struct.values, :'[ttl]', struct.ttl)
+
     def keyspace(struct), do: struct.in
     def consistency(struct), do: struct.with
   end
