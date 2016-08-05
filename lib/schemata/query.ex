@@ -283,19 +283,19 @@ defmodule Schemata.Query do
 
   defp to_cql_query_batch(query_list, keyspace, consistency) do
     cql_query_batch(
-      queries:     batch_query_list(query_list, keyspace),
-      consistency: consistency,
-      mode:        :logged
+      queries:     batch_query_list(query_list),
+      keyspace:    normalize_keyspace(keyspace),
+      consistency: consistency
     )
   end
 
-  defp batch_query_list(query_list, keyspace) do
+  defp batch_query_list(query_list) do
     Enum.map(query_list, fn ({statement, values}) ->
       log_query(statement, values)
       cql_query(
         statement: statement,
         values:    nullify(values, :undefined),
-        keyspace:  normalize_keyspace(keyspace)
+        reusable:  true
       )
     end)
   end
