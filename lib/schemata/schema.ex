@@ -3,7 +3,6 @@ defmodule Schemata.Schema do
 
   use GenServer
   alias Schemata.Query
-  alias Schemata.Queryable
   alias Schemata.Query.CreateTable
   alias Schemata.Query.CreateIndex
   alias Schemata.Query.CreateView
@@ -85,9 +84,9 @@ defmodule Schemata.Schema do
     GenServer.call(SchemaServer, {:load_schema, file})
   end
 
-  @spec list_schema(Query.keyspace | nil) :: [Queryable.t]
-  def list_schema(keyspace \\ nil) do
-    GenServer.call(SchemaServer, {:list_schema, keyspace})
+  @spec list_tables(Query.keyspace) :: [Query.table]
+  def list_tables(keyspace) do
+    GenServer.call(SchemaServer, {:list_tables, keyspace})
   end
 
   @spec apply_schema(Query.keyspace | nil) :: {:ok, :applied} | {:error, term}
@@ -135,20 +134,16 @@ defmodule Schemata.Schema do
     end
   end
 
-  def handle_call({:list_schema, nil}, _from, state) do
-    IO.inspect state
-    {:reply, :ok, state}
+  def handle_call({:list_tables, keyspace}, _from, state) do
+    tables = find_keyspace_tables(state.keyspace_tables, keyspace)
+    {:reply, tables, state}
   end
 
-  def handle_call({:list_schema, _keyspace}, _from, state) do
-    {:reply, :ok, state}
-  end
+  def handle_call({:apply_schema, keyspace}, _from, state) do
+    state.keyspace_tables
+    |> find_keyspace_tables(keyspace)
+    |> Enum.each(&create_table(keyspace, &1, state))
 
-  def handle_call({:apply_schema, nil}, _from, state) do
-    {:reply, :ok, state}
-  end
-
-  def handle_call({:apply_schema, _keyspace}, _from, state) do
     {:reply, :ok, state}
   end
 
@@ -159,14 +154,7 @@ defmodule Schemata.Schema do
   end
 
   def handle_call({:create_table, keyspace, table}, _from, state) do
-    table = to_atom(table)
-
-    table_def = state.table_defs[table]
-    Query.run(%CreateTable{table_def | in: keyspace})
-
-    create_table_indexes(keyspace, Map.get(state.table_indexes, table, []))
-    create_table_views(keyspace, Map.get(state.table_views, table, []))
-
+    create_table(keyspace, table, state)
     {:reply, :ok, state}
   end
 
@@ -175,6 +163,8 @@ defmodule Schemata.Schema do
   end
 
   def handle_cast({:push_table, name, struct}, state) do
+    name = to_atom(name)
+
     %State{
       current_ks: current_ks,
       keyspace_tables: ks_tables,
@@ -188,12 +178,12 @@ defmodule Schemata.Schema do
 
   def handle_cast({:push_view, table, struct}, state) do
     {:noreply, %State{state |
-      table_views: push_value(state.table_views, table, struct)}}
+      table_views: push_value(state.table_views, to_atom(table), struct)}}
   end
 
   def handle_cast({:push_index, table, struct}, state) do
     {:noreply, %State{state |
-      table_indexes: push_value(state.table_indexes, table, struct)}}
+      table_indexes: push_value(state.table_indexes, to_atom(table), struct)}}
   end
 
 
@@ -219,6 +209,26 @@ defmodule Schemata.Schema do
     :code.delete(module)
     :code.purge(module)
     :ok
+  end
+
+  defp find_keyspace_tables(ks_tables, keyspace) do
+    {_, value} = Enum.find(ks_tables, {nil, []}, &match_keyspace(&1, keyspace))
+    value
+  end
+
+  defp match_keyspace({key, _}, keyspace) when is_atom(key) or is_binary(key),
+    do: to_string(key) === to_string(keyspace)
+  defp match_keyspace({key, _}, keyspace) do
+    if Regex.regex?(key), do: Regex.match?(key, to_string(keyspace))
+  end
+
+  defp create_table(keyspace, table, state) do
+    table_def = state.table_defs[table]
+
+    Query.run(%CreateTable{table_def | in: keyspace})
+
+    create_table_indexes(keyspace, Map.get(state.table_indexes, table, []))
+    create_table_views(keyspace, Map.get(state.table_views, table, []))
   end
 
   defp drop_table_views(keyspace, views) do
