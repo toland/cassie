@@ -126,7 +126,7 @@ defmodule Schemata.Migrator do
 
   defp ensure_migrations_table!(keyspace, table) do
     create_keyspace keyspace
-    create_table table, in: keyspace,
+    create_table "#{keyspace}.#{table}",
       columns: [
         authored_at: :timestamp,
         description: :text,
@@ -249,7 +249,7 @@ defmodule Schemata.Migrator do
   end
 
   defp update_db(%Migration{authored_at: a, description: d}, :up, state) do
-    insert into: state.table, in: state.keyspace,
+    insert into: "#{state.keyspace}.#{state.table}",
       values: %{
         description: d,
         authored_at: a,
@@ -257,7 +257,7 @@ defmodule Schemata.Migrator do
       }
   end
   defp update_db(%Migration{authored_at: a, description: d}, :down, state) do
-    delete from: state.table, in: state.keyspace,
+    delete from: "#{state.keyspace}.#{state.table}",
       where: %{authored_at: a, description: d}
   end
 

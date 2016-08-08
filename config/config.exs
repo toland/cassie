@@ -4,7 +4,7 @@ use Mix.Config
 # config :schemata,
 #   clusters: [
 #     default: [
-#       keyspaces: [:schemata_test, :schemata]
+#       keyspaces: [:schemata_test]
 #     ]
 #   ]
 #
@@ -16,11 +16,6 @@ config :schemata,
       seed_hosts: ['127.0.0.1'],
       keyspaces: [
         schemata_test: [
-          strategy: :simple,
-          factor: 1,
-          clients: 1
-        ],
-        schemata: [
           strategy: :simple,
           factor: 1,
           clients: 1
