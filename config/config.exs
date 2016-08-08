@@ -1,8 +1,16 @@
 use Mix.Config
 
+# Using defaults the following can be shortened to:
+# config :schemata,
+#   clusters: [
+#     default: [
+#       keyspaces: [:schemata_test, :schemata]
+#     ]
+#   ]
+#
 config :schemata,
   clusters: [
-    [
+    default: [
       username: 'cassandra',
       password: 'cassandra',
       seed_hosts: ['127.0.0.1'],
