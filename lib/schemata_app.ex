@@ -37,6 +37,7 @@ defmodule SchemataApp do
 
   def configure_db(clusters) do
     for cluster <- clusters, do: configure_db_cluster(cluster)
+    :ok
   end
 
   def configure_db_cluster({name, cluster}) do
@@ -45,6 +46,7 @@ defmodule SchemataApp do
     {hosts, opts} = extract_defaults(cluster)
     _ = start_default_client(name, hosts, opts)
     start_keyspace_clients(name, hosts, opts, cluster[:keyspaces])
+    :ok
   end
 
   defp extract_defaults(cluster) do
