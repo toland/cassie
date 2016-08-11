@@ -162,7 +162,7 @@ defmodule Schemata.Migrator do
 
   defp load_migrations_from_db(keyspace, table) do
     :all
-    |> select(from: table, in: keyspace)
+    |> select(from: "#{keyspace}.#{table}")
     |> Enum.map(&Migration.from_map/1)
   end
 
