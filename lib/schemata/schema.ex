@@ -144,7 +144,7 @@ defmodule Schemata.Schema do
     |> find_keyspace_tables(keyspace)
     |> Enum.each(&create_table(keyspace, &1, state))
 
-    {:reply, :ok, state}
+    {:reply, {:ok, :applied}, state}
   end
 
   def handle_call({:recreate_table, keyspace, table}, from, state) do
