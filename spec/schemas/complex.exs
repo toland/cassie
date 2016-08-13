@@ -27,4 +27,25 @@ defmodule Schemata.Schemas.Wocky do
       primary_key: :id
     ]
   end
+
+  keyspace :complex_ks do
+    table :table_with_views_and_indexes, [
+      columns: [
+        id: :text,
+        name: :text
+      ],
+      primary_key: :id
+    ]
+
+    view :name_to_id, [
+      from: :table_with_views_and_indexes,
+      columns: :all,
+      primary_key: [:name, :id]
+    ]
+
+    index [
+      on: :table_with_views_and_indexes,
+      keys: [:name]
+    ]
+  end
 end

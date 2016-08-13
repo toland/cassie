@@ -152,6 +152,8 @@ defmodule Schemata do
   """
   @spec drop(atom, Keyword.t) :: :ok
   def drop(object, query) do
+    object = if object == :view, do: :materialized_view, else: object
+
     query
     |> Keyword.put(:object, object)
     |> Schemata.Query.Drop.from_opts

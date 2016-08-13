@@ -79,24 +79,29 @@ defmodule Schemata.Schema do
     GenServer.call(SchemaServer, {:load_schema, file})
   end
 
-  @spec list_tables(Query.keyspace) :: [Query.table]
+  @spec list_tables(Query.keyspace) :: [Query.table] | {:error, term}
   def list_tables(keyspace) do
     GenServer.call(SchemaServer, {:list_tables, keyspace})
   end
 
-  @spec apply_schema(Query.keyspace | nil) :: {:ok, :applied} | {:error, term}
+  @spec ensure_schema(Query.keyspace | nil) :: :ok | {:error, term}
+  def ensure_schema(keyspace \\ nil) do
+    GenServer.call(SchemaServer, {:ensure_schema, keyspace})
+  end
+
+  @spec apply_schema(Query.keyspace | nil) :: :ok | {:error, term}
   def apply_schema(keyspace \\ nil) do
     GenServer.call(SchemaServer, {:apply_schema, keyspace})
+  end
+
+  @spec ensure_table(Query.keyspace, Query.table) :: :ok | {:error, term}
+  def ensure_table(keyspace, table) do
+    GenServer.call(SchemaServer, {:ensure_table, keyspace, to_atom(table)})
   end
 
   @spec create_table(Query.keyspace, Query.table) :: :ok | {:error, term}
   def create_table(keyspace, table) do
     GenServer.call(SchemaServer, {:create_table, keyspace, to_atom(table)})
-  end
-
-  @spec create_table!(Query.keyspace, Query.table) :: :ok | {:error, term}
-  def create_table!(keyspace, table) do
-    GenServer.call(SchemaServer, {:recreate_table, keyspace, to_atom(table)})
   end
 
 
@@ -130,25 +135,45 @@ defmodule Schemata.Schema do
   end
 
   def handle_call({:list_tables, keyspace}, _from, state) do
-    tables = find_keyspace_tables(state.keyspace_tables, keyspace)
-    {:reply, tables, state}
+    result =
+      case find_keyspace_tables(state.keyspace_tables, keyspace) do
+        {:ok, tables} -> tables
+        {:error, _} = error -> error
+      end
+    {:reply, result, state}
+  end
+
+  def handle_call({:ensure_schema, keyspace}, _from, state) do
+    result =
+      state.keyspace_tables
+      |> each_table(keyspace, &ensure_table(keyspace, &1, state))
+
+    {:reply, result, state}
   end
 
   def handle_call({:apply_schema, keyspace}, _from, state) do
-    state.keyspace_tables
-    |> find_keyspace_tables(keyspace)
-    |> Enum.each(&create_table(keyspace, &1, state))
+    result =
+      state.keyspace_tables
+      |> each_table(keyspace, &create_table(keyspace, &1, state))
 
-    {:reply, {:ok, :applied}, state}
+    {:reply, result, state}
   end
 
-  def handle_call({:recreate_table, keyspace, table}, _from, state) do
-    result = recreate_table(keyspace, table, state)
+  def handle_call({:ensure_table, keyspace, table}, _from, state) do
+    result =
+      case validate_keyspace_and_table(keyspace, table, state) do
+        :ok -> ensure_table(keyspace, table, state)
+        error -> error
+      end
     {:reply, result, state}
   end
 
   def handle_call({:create_table, keyspace, table}, _from, state) do
-    result = create_table(keyspace, table, state)
+    result =
+      case validate_keyspace_and_table(keyspace, table, state) do
+        :ok -> create_table(keyspace, table, state)
+        error -> error
+      end
     {:reply, result, state}
   end
 
@@ -205,9 +230,21 @@ defmodule Schemata.Schema do
     :ok
   end
 
+  defp each_table(ks_tables, keyspace, fun) do
+    case find_keyspace_tables(ks_tables, keyspace) do
+      {:ok, tables} ->
+        Enum.each(tables, fun)
+        :ok
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp find_keyspace_tables(ks_tables, keyspace) do
-    {_, value} = Enum.find(ks_tables, {nil, []}, &match_keyspace(&1, keyspace))
-    value
+    case Enum.find(ks_tables, {nil, []}, &match_keyspace(&1, keyspace)) do
+      {nil, _} -> {:error, :unknown_keyspace}
+      {_, tables} -> {:ok, tables}
+    end
   end
 
   defp match_keyspace({key, _}, keyspace) when is_atom(key) or is_binary(key),
@@ -216,23 +253,36 @@ defmodule Schemata.Schema do
     if Regex.regex?(key), do: Regex.match?(key, to_string(keyspace))
   end
 
-  defp recreate_table(keyspace, table, state) do
+  defp validate_keyspace_and_table(keyspace, table, state) do
+    case find_keyspace_tables(state.keyspace_tables, keyspace) do
+      {:ok, tables} ->
+        if Enum.member?(tables, table) do
+          :ok
+        else
+          {:error, :unknown_table}
+        end
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp create_table(keyspace, table, state) do
     try do
       _ = state.table_views |> Map.get(table, []) |> drop_table_views(keyspace)
 
       :ok = Schemata.drop(:table, named: table, in: keyspace)
-      create_table(keyspace, table, state)
+      ensure_table(keyspace, table, state)
     rescue
       error in CassandraError ->
         {:error, {error.code, error.message}}
     end
   end
 
-  defp create_table(keyspace, table, state) do
+  defp ensure_table(keyspace, table, state) do
     table_def = state.table_defs[table]
 
     try do
-      :void = Query.run!(%CreateTable{table_def | in: keyspace})
+      result = Query.run!(%CreateTable{table_def | in: keyspace})
 
       _ = state.table_indexes
           |> Map.get(table, [])
@@ -242,7 +292,10 @@ defmodule Schemata.Schema do
           |> Map.get(table, [])
           |> create_table_views(keyspace)
 
-      :ok
+      case result do
+        :void -> :ok
+        {:cql_schema_changed, :created, :table, _, _, _} -> :ok
+      end
     rescue
       error in CassandraError ->
         {:error, {error.code, error.message}}
