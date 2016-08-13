@@ -5,8 +5,9 @@ defmodule Schemata.Result do
   alias Schemata.Result
 
   @opaque t :: record(:cql_result)
-  @type row :: map
-  @type rows :: [map]
+  @type value :: CQErl.parameter_val
+  @type row   :: map
+  @type rows  :: [map]
 
   @doc "The number of rows in a result set."
   @spec size(Result.t) :: non_neg_integer
@@ -60,7 +61,7 @@ defmodule Schemata.Result do
   @doc """
   Extracts the value of the first column of the first row from a query result.
   """
-  @spec single_value(Result.t) :: :not_found | term
+  @spec single_value(Result.t) :: :not_found | value
   def single_value(result) do
     case CQErl.head(result) do
       :empty_dataset -> :not_found

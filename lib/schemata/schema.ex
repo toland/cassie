@@ -69,11 +69,6 @@ defmodule Schemata.Schema do
     GenServer.start_link(__MODULE__, args, name: SchemaServer)
   end
 
-  @spec stop() :: :ok
-  def stop do
-    GenServer.stop(SchemaServer, :normal)
-  end
-
   @spec schema_file :: binary
   def schema_file do
     GenServer.call(SchemaServer, :schema_file)
@@ -109,12 +104,12 @@ defmodule Schemata.Schema do
   # GenServer callbacks
 
   def init(_args) do
-    schema_file = Application.fetch_env!(:schemata, :schema_file)
+    file = Application.fetch_env!(:schemata, :schema_file)
     load? = Application.fetch_env!(:schemata, :load_schema_on_startup)
 
-    if File.exists?(schema_file) && load?, do: do_load_schema(schema_file)
+    if File.exists?(file) && load?, do: do_load_schema(file)
 
-    {:ok, %State{schema_file: schema_file}}
+    {:ok, %State{schema_file: file}}
   end
 
   def handle_call(:schema_file, _from, state) do
@@ -147,15 +142,14 @@ defmodule Schemata.Schema do
     {:reply, {:ok, :applied}, state}
   end
 
-  def handle_call({:recreate_table, keyspace, table}, from, state) do
-    drop_table_views(keyspace, Map.get(state.table_views, table, []))
-    :ok = Schemata.drop(:table, named: table, in: keyspace)
-    handle_call({:create_table, keyspace, table}, from, state)
+  def handle_call({:recreate_table, keyspace, table}, _from, state) do
+    result = recreate_table(keyspace, table, state)
+    {:reply, result, state}
   end
 
   def handle_call({:create_table, keyspace, table}, _from, state) do
-    create_table(keyspace, table, state)
-    {:reply, :ok, state}
+    result = create_table(keyspace, table, state)
+    {:reply, result, state}
   end
 
   def handle_cast({:push_keyspace, pattern}, state) do
@@ -190,9 +184,9 @@ defmodule Schemata.Schema do
   # -------------------------------------------------------------------------
   # Private helper functions
 
-  defp do_load_schema(schema_file) do
-    {module, _} = schema_file |> Code.load_file |> hd
-    flush(schema_file, module)
+  defp do_load_schema(file) do
+    {module, _} = file |> Code.load_file |> hd
+    flush(file, module)
     :ok
   end
 
@@ -222,25 +216,49 @@ defmodule Schemata.Schema do
     if Regex.regex?(key), do: Regex.match?(key, to_string(keyspace))
   end
 
+  defp recreate_table(keyspace, table, state) do
+    try do
+      _ = state.table_views |> Map.get(table, []) |> drop_table_views(keyspace)
+
+      :ok = Schemata.drop(:table, named: table, in: keyspace)
+      create_table(keyspace, table, state)
+    rescue
+      error in CassandraError ->
+        {:error, {error.code, error.message}}
+    end
+  end
+
   defp create_table(keyspace, table, state) do
     table_def = state.table_defs[table]
 
-    Query.run(%CreateTable{table_def | in: keyspace})
+    try do
+      :void = Query.run!(%CreateTable{table_def | in: keyspace})
 
-    create_table_indexes(keyspace, Map.get(state.table_indexes, table, []))
-    create_table_views(keyspace, Map.get(state.table_views, table, []))
+      _ = state.table_indexes
+          |> Map.get(table, [])
+          |> create_table_indexes(keyspace)
+
+      _ = state.table_views
+          |> Map.get(table, [])
+          |> create_table_views(keyspace)
+
+      :ok
+    rescue
+      error in CassandraError ->
+        {:error, {error.code, error.message}}
+    end
   end
 
-  defp drop_table_views(keyspace, views) do
+  defp drop_table_views(views, keyspace) do
     for %CreateView{named: name} <- views,
       do: Schemata.drop :materialized_view, named: name, in: keyspace
   end
 
-  defp create_table_views(keyspace, views) do
-    for view <- views, do: Query.run(%CreateView{view | in: keyspace})
+  defp create_table_views(views, keyspace) do
+    for view <- views, do: Query.run!(%CreateView{view | in: keyspace})
   end
 
-  defp create_table_indexes(keyspace, indexes) do
-    for index <- indexes, do: Query.run(%CreateIndex{index | in: keyspace})
+  defp create_table_indexes(indexes, keyspace) do
+    for index <- indexes, do: Query.run!(%CreateIndex{index | in: keyspace})
   end
 end

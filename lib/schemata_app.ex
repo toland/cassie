@@ -45,7 +45,7 @@ defmodule SchemataApp do
     cluster = Keyword.merge(@cluster_defaults, cluster)
     {hosts, opts} = extract_defaults(cluster)
     _ = start_default_client(name, hosts, opts)
-    start_keyspace_clients(name, hosts, opts, cluster[:keyspaces])
+    _ = start_keyspace_clients(name, hosts, opts, cluster[:keyspaces])
     :ok
   end
 

@@ -10,7 +10,7 @@ defmodule Schemata.Mixfile do
      test_coverage: [tool: Coverex.Task],
      preferred_cli_env: [espec: :test, spec: :test],
      dialyzer: [
-       plt_add_deps: :transitive,
+       plt_add_deps: true,
        plt_add_apps: [:ssl],
        flags: [
          "--fullpath",
