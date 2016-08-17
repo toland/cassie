@@ -3,22 +3,21 @@ defmodule Schemata.SchemaSpec do
 
   alias Schemata.Schema
 
-  @complex_schema "spec/schemas/complex.exs"
-  @simple_schema "spec/schemas/simple.exs"
+  @schema_file "spec/schema.exs"
 
   describe "Schemata.Schema" do
-    describe "loading a schema file" do
-      before do
-        :ok = Schema.load_schema(@complex_schema)
-      end
+    before do
+      :ok = Schema.load_schema(@schema_file)
+    end
 
+    describe "loading a schema file" do
       it "should return the loaded schema file" do
-        Schema.schema_file |> should(eq @complex_schema)
+        Schema.schema_file |> should(eq @schema_file)
       end
 
       it "should use the saved schema file if none is passed" do
         Schema.load_schema |> should(eq :ok)
-        Schema.schema_file |> should(eq @complex_schema)
+        Schema.schema_file |> should(eq @schema_file)
       end
 
       it "should return an error if passed a bad file" do
@@ -27,10 +26,6 @@ defmodule Schemata.SchemaSpec do
     end
 
     describe "finding tables for a keyspace" do
-      before do
-        :ok = Schema.load_schema(@complex_schema)
-      end
-
       it "should work for keyspaces with atoms for names" do
         Schema.list_tables(:ks_atom) |> should(have :ks_atom_table)
         Schema.list_tables("ks_atom") |> should(have :ks_atom_table)
@@ -59,7 +54,6 @@ defmodule Schemata.SchemaSpec do
 
     describe "ensuring a table" do
       before do
-        :ok = Schema.load_schema(@simple_schema)
         :ok = Schemata.drop :view, named: :test_view, in: :schemata_test
         :ok = Schemata.drop :table, named: :test_table, in: :schemata_test
         result = Schema.ensure_table(:schemata_test, :test_table)
@@ -123,7 +117,6 @@ defmodule Schemata.SchemaSpec do
 
       describe "when there is an error" do
         before do
-          :ok = Schema.load_schema(@complex_schema)
           result = Schema.ensure_table(:ks_atom, :ks_atom_table)
           {:shared, result: result}
         end
@@ -136,7 +129,6 @@ defmodule Schemata.SchemaSpec do
 
     describe "creating a table" do
       before do
-        :ok = Schema.load_schema(@simple_schema)
         :ok = Schemata.drop :view, named: :test_view, in: :schemata_test
         :ok = Schemata.drop :table, named: :test_table, in: :schemata_test
         result = Schema.create_table(:schemata_test, :test_table)
@@ -197,7 +189,6 @@ defmodule Schemata.SchemaSpec do
 
       describe "when there is an error" do
         before do
-          :ok = Schema.load_schema(@complex_schema)
           result = Schema.create_table(:ks_atom, :ks_atom_table)
           {:shared, result: result}
         end
@@ -210,7 +201,6 @@ defmodule Schemata.SchemaSpec do
 
     describe "ensuring a keyspace" do
       before do
-        :ok = Schema.load_schema(@simple_schema)
         :ok = Schemata.drop :view, named: :test_view, in: :schemata_test
         :ok = Schemata.drop :table, named: :test_table, in: :schemata_test
         result = Schema.ensure_keyspace(:schemata_test)
@@ -264,7 +254,6 @@ defmodule Schemata.SchemaSpec do
 
       describe "when there is an error" do
         before do
-          :ok = Schema.load_schema(@complex_schema)
           result = Schema.ensure_keyspace(:ks_atom)
           {:shared, result: result}
         end
@@ -277,7 +266,6 @@ defmodule Schemata.SchemaSpec do
 
     describe "creating a keyspace" do
       before do
-        :ok = Schema.load_schema(@simple_schema)
         :ok = Schemata.drop :view, named: :test_view, in: :schemata_test
         :ok = Schemata.drop :table, named: :test_table, in: :schemata_test
         result = Schema.create_keyspace(:schemata_test)
@@ -331,7 +319,6 @@ defmodule Schemata.SchemaSpec do
 
       describe "when there is an error" do
         before do
-          :ok = Schema.load_schema(@complex_schema)
           result = Schema.create_keyspace(:ks_atom)
           {:shared, result: result}
         end

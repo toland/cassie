@@ -1,6 +1,24 @@
 defmodule Schemata.Schemas.Wocky do
   use Schemata.Schema
 
+  keyspace :schemata_test do
+    table :test_table, [
+      columns: [
+        id: :text,
+        data: :text
+      ],
+      primary_key: :id
+    ]
+
+    index on: :test_table, keys: [:data]
+
+    view :test_view, [
+      from: :test_table,
+      columns: :all,
+      primary_key: [:data, :id]
+    ]
+  end
+
   keyspace :ks_atom do
     table :ks_atom_table, [
       columns: [
@@ -25,27 +43,6 @@ defmodule Schemata.Schemas.Wocky do
         id: :text
       ],
       primary_key: :id
-    ]
-  end
-
-  keyspace :complex_ks do
-    table :table_with_views_and_indexes, [
-      columns: [
-        id: :text,
-        name: :text
-      ],
-      primary_key: :id
-    ]
-
-    view :name_to_id, [
-      from: :table_with_views_and_indexes,
-      columns: :all,
-      primary_key: [:name, :id]
-    ]
-
-    index [
-      on: :table_with_views_and_indexes,
-      keys: [:name]
     ]
   end
 end
