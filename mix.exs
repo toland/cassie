@@ -30,7 +30,7 @@ defmodule Schemata.Mixfile do
     [
       description: 'Elixir library for interacting with Cassandra',
       applications: dev_apps ++ [:logger, :timex, :cqerl],
-      mod: {SchemataApp, []},
+      mod: {Schemata.App, []},
       env: [
         drop_nulls: true,
         clusters: [],

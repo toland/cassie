@@ -1,4 +1,4 @@
-defmodule SchemataApp do
+defmodule Schemata.App do
   @moduledoc ""
 
   use Application
