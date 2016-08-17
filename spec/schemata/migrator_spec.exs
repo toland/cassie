@@ -11,13 +11,30 @@ defmodule Schemata.MigratorSpec do
       Schemata.truncate table: :migrations, in: @test_keyspace
     end
 
-    finally do
-      Migrator.flush
-    end
-
     let :all, do: Migrator.list_migrations
     let :applied, do: Migrator.list_migrations(:applied)
     let :available, do: Migrator.list_migrations(:available)
+
+    describe "loading migrations" do
+      before do
+        migrations_path = Path.join(@base_migrations_path, "all")
+        Migrator.load_migrations(migrations_path)
+        {:shared, migrations_path: migrations_path}
+      end
+
+      it "should return the migrations dir" do
+        Migrator.migrations_dir |> should(eq shared.migrations_path)
+      end
+
+      it "should use the saved migrations dir if none is passed" do
+        Migrator.load_migrations |> should(eq :ok)
+        Migrator.migrations_dir |> should(eq shared.migrations_path)
+      end
+
+      it "should return an error if passed a bad dir" do
+        Migrator.load_migrations("/does/not/exist") |> should(be_error_result)
+      end
+    end
 
     describe "in a fresh environment with all migrations available" do
       before do
