@@ -2,7 +2,9 @@ defmodule Schemata.Schema do
   @moduledoc ""
 
   use GenServer
+  import Happy
   alias Schemata.Query
+  alias Schemata.Query.Drop
   alias Schemata.Query.CreateTable
   alias Schemata.Query.CreateIndex
   alias Schemata.Query.CreateView
@@ -76,6 +78,7 @@ defmodule Schemata.Schema do
 
   @spec load_schema(binary | nil) :: :ok | {:error, term}
   def load_schema(file \\ nil) do
+    GenServer.call(SchemaServer, :clear_schema)
     GenServer.call(SchemaServer, {:load_schema, file})
   end
 
@@ -84,14 +87,14 @@ defmodule Schemata.Schema do
     GenServer.call(SchemaServer, {:list_tables, keyspace})
   end
 
-  @spec ensure_schema(Query.keyspace | nil) :: :ok | {:error, term}
-  def ensure_schema(keyspace \\ nil) do
-    GenServer.call(SchemaServer, {:ensure_schema, keyspace})
+  @spec ensure_keyspace(Query.keyspace) :: :ok | {:error, term}
+  def ensure_keyspace(keyspace) do
+    GenServer.call(SchemaServer, {:ensure_keyspace, keyspace})
   end
 
-  @spec apply_schema(Query.keyspace | nil) :: :ok | {:error, term}
-  def apply_schema(keyspace \\ nil) do
-    GenServer.call(SchemaServer, {:apply_schema, keyspace})
+  @spec create_keyspace(Query.keyspace) :: :ok | {:error, term}
+  def create_keyspace(keyspace) do
+    GenServer.call(SchemaServer, {:create_keyspace, keyspace})
   end
 
   @spec ensure_table(Query.keyspace, Query.table) :: :ok | {:error, term}
@@ -121,6 +124,10 @@ defmodule Schemata.Schema do
     {:reply, state.schema_file, state}
   end
 
+  def handle_call(:clear_schema, _from, %State{schema_file: file}) do
+    {:reply, :ok, %State{schema_file: file}}
+  end
+
   def handle_call({:load_schema, nil}, from, state) do
     handle_call({:load_schema, state.schema_file}, from, state)
   end
@@ -143,7 +150,7 @@ defmodule Schemata.Schema do
     {:reply, result, state}
   end
 
-  def handle_call({:ensure_schema, keyspace}, _from, state) do
+  def handle_call({:ensure_keyspace, keyspace}, _from, state) do
     result =
       state.keyspace_tables
       |> each_table(keyspace, &ensure_table(keyspace, &1, state))
@@ -151,7 +158,7 @@ defmodule Schemata.Schema do
     {:reply, result, state}
   end
 
-  def handle_call({:apply_schema, keyspace}, _from, state) do
+  def handle_call({:create_keyspace, keyspace}, _from, state) do
     result =
       state.keyspace_tables
       |> each_table(keyspace, &create_table(keyspace, &1, state))
@@ -230,11 +237,20 @@ defmodule Schemata.Schema do
     :ok
   end
 
+  defp each_while_ok(items, fun) do
+    Enum.reduce_while(items, :ok, fn item, _ ->
+      case fun.(item) do
+        :ok -> {:cont, :ok}
+        {:ok, _} -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
+
   defp each_table(ks_tables, keyspace, fun) do
     case find_keyspace_tables(ks_tables, keyspace) do
       {:ok, tables} ->
-        Enum.each(tables, fun)
-        :ok
+        each_while_ok(tables, fun)
       {:error, _} = error ->
         error
     end
@@ -267,51 +283,48 @@ defmodule Schemata.Schema do
   end
 
   defp create_table(keyspace, table, state) do
-    try do
-      _ = state.table_views |> Map.get(table, []) |> drop_table_views(keyspace)
+    happy_path do
+      :ok = state.table_views
+            |> Map.get(table, [])
+            |> drop_table_views(keyspace)
 
-      :ok = Schemata.drop(:table, named: table, in: keyspace)
+      {:ok, _} = Query.run(%Drop{object: :table, named: table, in: keyspace})
+
       ensure_table(keyspace, table, state)
-    rescue
-      error in CassandraError ->
-        {:error, {error.code, error.message}}
     end
   end
 
   defp ensure_table(keyspace, table, state) do
-    table_def = state.table_defs[table]
+    happy_path do
+      table_def = state.table_defs[table]
 
-    try do
-      result = Query.run!(%CreateTable{table_def | in: keyspace})
+      {:ok, _} = Query.run(%CreateTable{table_def | in: keyspace})
 
-      _ = state.table_indexes
-          |> Map.get(table, [])
-          |> create_table_indexes(keyspace)
+      :ok = state.table_indexes
+            |> Map.get(table, [])
+            |> create_table_indexes(keyspace)
 
-      _ = state.table_views
-          |> Map.get(table, [])
-          |> create_table_views(keyspace)
-
-      case result do
-        :void -> :ok
-        {:cql_schema_changed, :created, :table, _, _, _} -> :ok
-      end
-    rescue
-      error in CassandraError ->
-        {:error, {error.code, error.message}}
+      :ok = state.table_views
+            |> Map.get(table, [])
+            |> create_table_views(keyspace)
     end
   end
 
+  defp query_each(items, query_generator) do
+    each_while_ok(items, &Query.run(query_generator.(&1)))
+  end
+
   defp drop_table_views(views, keyspace) do
-    for %CreateView{named: name} <- views,
-      do: Schemata.drop :materialized_view, named: name, in: keyspace
+    query_each(views, fn %CreateView{named: name} ->
+      %Drop{object: :materialized_view, named: name, in: keyspace}
+    end)
   end
 
   defp create_table_views(views, keyspace) do
-    for view <- views, do: Query.run!(%CreateView{view | in: keyspace})
+    query_each(views, fn view -> %CreateView{view | in: keyspace} end)
   end
 
   defp create_table_indexes(indexes, keyspace) do
-    for index <- indexes, do: Query.run!(%CreateIndex{index | in: keyspace})
+    query_each(indexes, fn index -> %CreateIndex{index | in: keyspace} end)
   end
 end
