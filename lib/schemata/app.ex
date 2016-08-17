@@ -22,7 +22,7 @@ defmodule Schemata.App do
 
     _ =
       :schemata
-      |> Application.fetch_env!(:clusters)
+      |> Application.fetch_env!(:cluster)
       |> configure_db
 
     Schemata.Supervisor.start_link()
@@ -35,17 +35,12 @@ defmodule Schemata.App do
     Application.put_env(:cqerl, :text_uuids, true, persistent: true)
   end
 
-  def configure_db(clusters) do
-    for cluster <- clusters, do: configure_db_cluster(cluster)
-    :ok
-  end
-
-  def configure_db_cluster({name, cluster}) do
-    :ok = Logger.info("Starting clients for cluster #{name}")
+  defp configure_db(cluster) do
+    :ok = Logger.debug("Starting cqerl clients")
     cluster = Keyword.merge(@cluster_defaults, cluster)
     {hosts, opts} = extract_defaults(cluster)
-    _ = start_default_client(name, hosts, opts)
-    _ = start_keyspace_clients(name, hosts, opts, cluster[:keyspaces])
+    _ = start_default_client(hosts, opts)
+    _ = start_keyspace_clients(hosts, opts, cluster[:keyspaces])
     :ok
   end
 
@@ -58,25 +53,25 @@ defmodule Schemata.App do
     {cluster[:seed_hosts], opts}
   end
 
-  defp start_default_client(name, hosts, opts) do
-    :ok = Logger.info("Starting default client for cluster #{name}")
+  defp start_default_client(hosts, opts) do
+    :ok = Logger.debug("Starting default client")
     CQErl.add_group(hosts, opts, 1)
   end
 
-  defp start_keyspace_clients(name, hosts, opts, keyspaces) do
-    for ks <- keyspaces, do: start_keyspace_client(name, hosts, opts, ks)
+  defp start_keyspace_clients(hosts, opts, keyspaces) do
+    for ks <- keyspaces, do: start_keyspace_client(hosts, opts, ks)
   end
 
-  defp start_keyspace_client(cluster, hosts, opts, {name, config}) do
-    :ok = Logger.info("Starting client for keyspace #{cluster}/#{name}")
+  defp start_keyspace_client(hosts, opts, {name, config}) do
+    :ok = Logger.debug("Starting client for keyspace #{name}")
     config = Keyword.merge(@keyspace_defaults, config)
     ensure_keyspace!(name, config)
 
     opts = Keyword.put(opts, :keyspace, name)
     CQErl.add_group(hosts, opts, config[:clients])
   end
-  defp start_keyspace_client(cluster, hosts, opts, name),
-    do: start_keyspace_client(cluster, hosts, opts, {name, []})
+  defp start_keyspace_client(hosts, opts, name),
+    do: start_keyspace_client(hosts, opts, {name, []})
 
   defp ensure_keyspace!(name, config) do
     Schemata.create_keyspace name,
