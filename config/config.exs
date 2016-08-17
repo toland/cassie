@@ -15,11 +15,12 @@ config :schemata,
       password: 'cassandra',
       seed_hosts: ['127.0.0.1'],
       keyspaces: [
-        schemata_test: [
+        {:schemata_test, [
           strategy: :simple,
           factor: 1,
           clients: 1
-        ]
+        ]},
+        :schemata_test_2
       ]
     ]
   ]
