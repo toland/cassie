@@ -276,6 +276,18 @@ defmodule Schemata.Queryable.CreateViewSpec do
        CREATE MATERIALIZED VIEW IF NOT EXISTS user_email AS\
         SELECT * FROM users\
         WHERE user IS NOT NULL\
+        PRIMARY KEY (user)\
+       """,
+       %CreateView{
+         named: :user_email, from: :users,
+         columns: :all,
+         primary_key: :user
+       }
+      },
+      {"""
+       CREATE MATERIALIZED VIEW IF NOT EXISTS user_email AS\
+        SELECT * FROM users\
+        WHERE user IS NOT NULL\
         AND email IS NOT NULL\
         PRIMARY KEY (user, email)\
         WITH CLUSTERING ORDER BY (email ASC)\
