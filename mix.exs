@@ -57,7 +57,7 @@ defmodule Schemata.Mixfile do
       {:credo,    "~> 0.4", only: :dev},
       {:ex_guard, "~> 1.1", only: :dev},
       {:reprise,  "~> 0.5", only: :dev},
-      {:espec,    "~> 0.8", only: :test},
+      {:espec,    "~> 1.0", only: :test},
       {:coverex,  "~> 1.4", only: :test},
       {:timex,    "~> 3.0"},
       {:inflex,   "~> 1.7"},

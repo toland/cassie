@@ -8,7 +8,7 @@
   "dogma": {:hex, :dogma, "0.1.7", "927f76a89a809db96e0983b922fc899f601352690aefa123529b8aa0c45123b2", [:mix], [{:poison, ">= 1.0.0", [hex: :poison, optional: false]}]},
   "erlando": {:git, "https://github.com/rabbitmq/erlando.git", "1c1ef25a9bc228671b32b4a6ee30c7525314b1fd", [branch: "master"]},
   "erlang_murmurhash": {:git, "https://github.com/hippware/erlang-murmurhash.git", "73fe63aad252c9d503c889935f30370995026403", [branch: "master"]},
-  "espec": {:hex, :espec, "0.8.28", "f002710673d215876c4ca6fc74cbf5e330954badea7389d2284d2050940f1779", [:mix], [{:meck, "~> 0.8.4", [hex: :meck, optional: false]}]},
+  "espec": {:hex, :espec, "1.0.1", "0f6a4f6be512f078a0528082d43196bcd687701dfa68a0865baf1d186430eb85", [:mix], [{:meck, "~> 0.8.4", [hex: :meck, optional: false]}]},
   "ex_guard": {:hex, :ex_guard, "1.1.0", "7a3f3613ce580b72664e65fa56741d00331a8b71885f8334f99493792782bf07", [:mix], [{:fs, "~> 0.9", [hex: :fs, optional: false]}]},
   "fs": {:hex, :fs, "0.9.2", "ed17036c26c3f70ac49781ed9220a50c36775c6ca2cf8182d123b6566e49ec59", [:rebar], []},
   "gettext": {:hex, :gettext, "0.11.0", "80c1dd42d270482418fa158ec5ba073d2980e3718bacad86f3d4ad71d5667679", [:mix], []},
