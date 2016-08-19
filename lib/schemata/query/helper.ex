@@ -72,6 +72,9 @@ defmodule Schemata.Query.Helper do
   def replication_strategy(:simple, factor) do
     "{'class': 'SimpleStrategy', 'replication_factor': #{factor}}"
   end
+  def replication_strategy(:topology, dcs) do
+    replication_strategy(:network_topology, dcs)
+  end
   def replication_strategy(:network_topology, dcs) do
     "{'class': 'NetworkTopologyStrategy'#{dc_factors(dcs, [])}}"
   end
