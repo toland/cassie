@@ -193,7 +193,7 @@ defmodule Schemata.Query do
   On successful completion, the function returns `{:ok, :void}`.
   """
   @spec run_batch(keyspace, [{statement, values}], consistency_level) ::
-    {:ok, :void} | {:error, error}
+    {:ok, :void} | error
   # Cassandra throws an exception if you try to batch zero queries.
   def run_batch(_keyspace, [], _consistency), do: {:ok, :void}
   def run_batch(keyspace, query_list, consistency) do
