@@ -14,7 +14,7 @@ defmodule Schemata.Result do
   defdelegate size(result), to: CQErl
 
   @doc "Returns the first row of result, as a map."
-  @spec head(Result.t) :: row
+  @spec head(Result.t) :: :empty_dataset | row
   def head(result), do: result |> CQErl.head |> maybe_drop_nulls
 
   @doc "Returns all rows of result, except the first one."
