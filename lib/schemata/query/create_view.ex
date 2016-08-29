@@ -33,7 +33,8 @@ defmodule Schemata.Query.CreateView do
   @spec from_opts(Keyword.t) :: __MODULE__.t
   def from_opts(opts) do
     query_from_opts opts,
-      take: [:named, :from, :columns, :primary_key, :order_by, :in, :with],
+      take: [:named, :from, :columns, :primary_key, :order_by, :in, :with,
+             :where],
       required: [:named, :from, :primary_key],
       return: %__MODULE__{named: "bogus", from: "bogus", primary_key: []}
   end
