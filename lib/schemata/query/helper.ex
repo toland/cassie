@@ -115,9 +115,15 @@ defmodule Schemata.Query.Helper do
   end
 
   @doc false
-  def view_conditions(pk) when not is_list(pk), do: view_conditions([pk])
-  def view_conditions([first | rest]) do
+  def view_pk_conditions(pk) when not is_list(pk), do: view_pk_conditions([pk])
+  def view_pk_conditions([first | rest]) do
     List.foldl(rest, "WHERE #{first} IS NOT NULL",
      fn (name, str) -> "#{str} AND #{name} IS NOT NULL" end)
+  end
+
+  @doc false
+  def view_conditions(cond) do
+    Enum.reduce(cond, "",
+     fn ({name, val}, str) -> "#{str} AND #{name} = #{val}" end)
   end
 end
