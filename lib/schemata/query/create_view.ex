@@ -11,7 +11,8 @@ defmodule Schemata.Query.CreateView do
     primary_key: Query.primary_key,
     order_by:    Query.ordering,
     in:          Query.keyspace,
-    with:        Query.consistency_level
+    with:        Query.consistency_level,
+    where:       Query.conditions
   }
 
   @enforce_keys [:named, :from, :primary_key]
@@ -22,7 +23,8 @@ defmodule Schemata.Query.CreateView do
     primary_key: nil,
     order_by:    [],
     in:          nil,
-    with:        nil
+    with:        nil,
+    where:       %{}
   ]
 
   @behaviour Schemata.Query
@@ -31,7 +33,8 @@ defmodule Schemata.Query.CreateView do
   @spec from_opts(Keyword.t) :: __MODULE__.t
   def from_opts(opts) do
     query_from_opts opts,
-      take: [:named, :from, :columns, :primary_key, :order_by, :in, :with],
+      take: [:named, :from, :columns, :primary_key, :order_by, :in, :with,
+             :where],
       required: [:named, :from, :primary_key],
       return: %__MODULE__{named: "bogus", from: "bogus", primary_key: []}
   end
@@ -41,7 +44,8 @@ defmodule Schemata.Query.CreateView do
       """
       CREATE MATERIALIZED VIEW IF NOT EXISTS #{struct.named} AS \
       SELECT #{struct.columns |> columns("*")} FROM #{struct.from} \
-      #{struct.primary_key |> view_conditions} \
+      #{struct.primary_key |> view_pk_conditions} \
+      #{struct.where |> view_conditions} \
       PRIMARY KEY (#{struct.primary_key |> primary_key_string}) \
       #{struct.order_by |> sorting_option_string}
       """
