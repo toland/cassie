@@ -11,7 +11,8 @@ defmodule Schemata.Query.CreateView do
     primary_key: Query.primary_key,
     order_by:    Query.ordering,
     in:          Query.keyspace,
-    with:        Query.consistency_level
+    with:        Query.consistency_level,
+    conds:       Query.conditions
   }
 
   @enforce_keys [:named, :from, :primary_key]
@@ -22,7 +23,8 @@ defmodule Schemata.Query.CreateView do
     primary_key: nil,
     order_by:    [],
     in:          nil,
-    with:        nil
+    with:        nil,
+    conds:       %{}
   ]
 
   @behaviour Schemata.Query
@@ -41,7 +43,8 @@ defmodule Schemata.Query.CreateView do
       """
       CREATE MATERIALIZED VIEW IF NOT EXISTS #{struct.named} AS \
       SELECT #{struct.columns |> columns("*")} FROM #{struct.from} \
-      #{struct.primary_key |> view_conditions} \
+      #{struct.primary_key |> view_pk_conditions} \
+      #{struct.conds |> view_conditions} \
       PRIMARY KEY (#{struct.primary_key |> primary_key_string}) \
       #{struct.order_by |> sorting_option_string}
       """
