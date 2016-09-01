@@ -41,4 +41,10 @@ defmodule Mix.Tasks.Schemata.Gen do
 
     create_file(filepath, template)
   end
+  def run([]) do
+    IO.puts "Error: migration name required"
+  end
+  def run(_) do
+    IO.puts "Error: too many arguments"
+  end
 end
