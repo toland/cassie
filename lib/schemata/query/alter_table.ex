@@ -62,10 +62,17 @@ defmodule Schemata.Query.AlterTable do
       "ALTER TABLE #{struct.named} #{render_op(struct.column, struct.op)}"
     end
 
-    defp render_op(column, {:alter, type}),  do: "ALTER #{column} TYPE #{type}"
-    defp render_op(column, {:add, type}),    do: "ADD #{column} #{type}"
+    defp render_op(column, {:alter, type}) do
+      "ALTER #{column} TYPE #{render_type(type)}"
+    end
+    defp render_op(column, {:add, type}) do
+      "ADD #{column} #{render_type(type)}"
+    end
     defp render_op(column, {:rename, name}), do: "RENAME #{column} TO #{name}"
     defp render_op(column, :drop),           do: "DROP #{column}"
+
+    defp render_type({collection, type}), do: "#{collection}<#{type}>"
+    defp render_type(type), do: "#{type}"
 
     def values(_struct), do: %{}
     def keyspace(struct), do: struct.in
