@@ -137,10 +137,16 @@ defmodule Schemata.Migrator do
     if File.exists?(dir) do
       dir
       |> File.ls!
+      |> Enum.filter(&is_migration_file/1)
       |> Enum.map(fn file -> dir |> Path.join(file) |> Migration.load_file end)
     else
       []
     end
+  end
+
+  defp is_migration_file(filename) do
+    String.ends_with?(filename, ".exs")
+    and not String.starts_with?(filename, ".")
   end
 
   defp load_migrations_from_db(keyspace, table) do
