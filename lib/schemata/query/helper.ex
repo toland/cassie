@@ -115,9 +115,18 @@ defmodule Schemata.Query.Helper do
   end
 
   @doc false
-  def view_conditions(pk) when not is_list(pk), do: view_conditions([pk])
-  def view_conditions([first | rest]) do
+  def view_pk_conditions(pk) when not is_list(pk), do: view_pk_conditions([pk])
+  def view_pk_conditions([first | rest]) do
     List.foldl(rest, "WHERE #{first} IS NOT NULL",
      fn (name, str) -> "#{str} AND #{name} IS NOT NULL" end)
   end
+
+  @doc false
+  def view_conditions(where) do
+    Enum.reduce(where, "",
+     fn ({name, val}, str) -> "#{str} AND #{name} = #{maybe_quote(val)}" end)
+  end
+
+  defp maybe_quote(value) when is_integer(value), do: value
+  defp maybe_quote(value) when is_binary(value), do: "'#{value}'"
 end
