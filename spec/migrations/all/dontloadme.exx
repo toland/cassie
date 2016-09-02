@@ -1,0 +1,1 @@
+This file is to test that files ending with anything other than ".exs" are not loaded
