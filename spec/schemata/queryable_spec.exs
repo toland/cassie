@@ -248,10 +248,6 @@ defmodule Schemata.Queryable.AlterTableSpec do
        %AlterTable{named: "users", column: :email, op: {:rename, :mail}}},
       {"ALTER TABLE users DROP email",
        %AlterTable{named: "users", column: :email, op: :drop}},
-      {"ALTER TABLE users DROP email",
-       %AlterTable{named: "users", column: :email, op: :drop}},
-      {"ALTER TABLE users DROP email",
-       %AlterTable{named: "users", column: :email, op: :drop}},
     ]}
   end
 
